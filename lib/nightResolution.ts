@@ -48,7 +48,7 @@ export function resolveNight(
       result.seerResults.push({
         targetId: target.id,
         targetName: target.name,
-        isEvil: target.role === "Werewolf" || target.role === "SerialKiller",
+        isEvil: ["Werewolf", "AlphaWerewolf", "WolfSeer", "SerialKiller"].includes(target.role!),
       });
     }
   }

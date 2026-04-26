@@ -83,7 +83,7 @@ export default function NightPhaseScreen() {
     if (!selectedTarget) return;
     const target = players.find((p) => p.id === selectedTarget);
     if (!target) return;
-    const isEvil = target.role === "Werewolf" || target.role === "SerialKiller";
+    const isEvil = ["Werewolf", "AlphaWerewolf", "WolfSeer", "SerialKiller"].includes(target.role!);
     setSeerResult({ name: target.name, isEvil });
     setShowSeerResult(true);
     
