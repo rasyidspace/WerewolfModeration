@@ -36,7 +36,7 @@ export default function SetupScreen() {
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden">
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-5 pt-5 pb-4">
+      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-6">
 
         {/* Page heading */}
         <motion.div
@@ -118,7 +118,7 @@ export default function SetupScreen() {
                     : "1px solid rgba(255,255,255,0.06)",
                 }}
               >
-                <div className="flex items-center" style={{ gap: 16, padding: "16px 20px" }}>
+                <div className="flex items-center" style={{ gap: 16, padding: "20px 24px" }}>
                   {/* Icon */}
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
@@ -214,7 +214,7 @@ export default function SetupScreen() {
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="flex flex-col gap-4 mb-6 p-4 rounded-2xl overflow-hidden" 
+            className="flex flex-col gap-5 mb-8 p-6 rounded-2xl overflow-hidden" 
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <div className="flex flex-col gap-1.5">
@@ -271,7 +271,7 @@ export default function SetupScreen() {
 
       {/* ── Sticky CTA ── */}
       <div
-        className="flex-shrink-0 px-5 py-4"
+        className="flex-shrink-0 px-6 py-5"
         style={{
           borderTop: "1px solid rgba(255,255,255,0.07)",
           background: "rgba(10,10,15,0.96)",
