@@ -81,8 +81,8 @@ export default function SetupScreen() {
               {mismatch
                 ? `Need ${totalPlayers}, have ${totalAssigned} — adjust counts`
                 : totalPlayers > 0
-                ? "✓ Roles match player count"
-                : "Configure player count in the next step"}
+                  ? "✓ Roles match player count"
+                  : "Configure player count in the next step"}
             </p>
           </div>
           {mismatch && (
@@ -211,15 +211,15 @@ export default function SetupScreen() {
         </button>
 
         {showSettings && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="flex flex-col gap-5 mb-8 p-6 rounded-2xl overflow-hidden" 
+            className="flex flex-col gap-5 mb-8 p-6 rounded-2xl overflow-hidden"
             style={{ background: "rgba(22,22,31,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Day Phase: Tie Breaker</label>
-              <select 
+              <select
                 value={settings.tieBreaker}
                 onChange={(e) => updateSetting("tieBreaker", e.target.value as any)}
                 className="bg-black/50 text-white text-sm rounded-lg p-2.5 border border-white/10 outline-none"
@@ -234,7 +234,7 @@ export default function SetupScreen() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-red-400 font-semibold uppercase tracking-wider">Werewolf Team: Tie Breaker</label>
-              <select 
+              <select
                 value={settings.werewolfTieBreaker}
                 onChange={(e) => updateSetting("werewolfTieBreaker", e.target.value as any)}
                 className="bg-black/50 text-white text-sm rounded-lg p-2.5 border border-white/10 outline-none"
@@ -247,20 +247,20 @@ export default function SetupScreen() {
             <div className="flex items-center justify-between">
               <label className="text-sm text-gray-300 font-medium">Alpha Override Vote</label>
               <button
-                 onClick={() => updateSetting("alphaOverrideVote", !settings.alphaOverrideVote)}
-                 className="relative rounded-full w-11 h-6 transition-colors"
-                 style={{ background: settings.alphaOverrideVote ? "#dc2626" : "rgba(255,255,255,0.1)" }}
+                onClick={() => updateSetting("alphaOverrideVote", !settings.alphaOverrideVote)}
+                className="relative rounded-full w-11 h-6 transition-colors"
+                style={{ background: settings.alphaOverrideVote ? "#dc2626" : "rgba(255,255,255,0.1)" }}
               >
-                 <div className="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: settings.alphaOverrideVote ? "calc(100% - 20px)" : "4px" }} />
+                <div className="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: settings.alphaOverrideVote ? "calc(100% - 20px)" : "4px" }} />
               </button>
             </div>
 
             <div className="flex items-center justify-between">
               <label className="text-sm text-gray-300 font-medium">Alpha Convert Limit</label>
               <div className="flex items-center gap-3">
-                <button onClick={() => updateSetting("alphaConvertLimit", Math.max(0, settings.alphaConvertLimit - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"><Minus size={14}/></button>
+                <button onClick={() => updateSetting("alphaConvertLimit", Math.max(0, settings.alphaConvertLimit - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"><Minus size={14} /></button>
                 <span className="text-white text-base font-bold w-4 text-center">{settings.alphaConvertLimit}</span>
-                <button onClick={() => updateSetting("alphaConvertLimit", settings.alphaConvertLimit + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"><Plus size={14}/></button>
+                <button onClick={() => updateSetting("alphaConvertLimit", settings.alphaConvertLimit + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"><Plus size={14} /></button>
               </div>
             </div>
           </motion.div>
@@ -271,7 +271,7 @@ export default function SetupScreen() {
 
       {/* ── Sticky CTA ── */}
       <div
-        className="flex-shrink-0 px-8 py-6"
+        className="flex-shrink-0 px-5 py-4"
         style={{
           borderTop: "1px solid rgba(255,255,255,0.07)",
           background: "rgba(10,10,15,0.96)",

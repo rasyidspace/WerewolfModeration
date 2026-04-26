@@ -18,9 +18,12 @@ export default function NightPhaseScreen() {
   } = useGameStore();
 
   const enabledRoles = roleConfigs.filter((rc) => rc.enabled).map((rc) => rc.role);
-  const nightRoles = getNightRoles(enabledRoles).filter((role) => {
-    if (role === "Cupid" && round > 1) return false;
-    return players.some((p) => p.role === role);
+  const nightRoles = getNightRoles(enabledRoles).filter((step) => {
+    if (step === "Cupid" && round > 1) return false;
+    if (step === "WerewolfTeam") {
+      return players.some(p => ["Werewolf", "AlphaWerewolf", "WolfSeer", "Minion"].includes(p.role!));
+    }
+    return players.some((p) => p.role === step);
   });
 
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
