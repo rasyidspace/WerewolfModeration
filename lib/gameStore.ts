@@ -431,7 +431,7 @@ export const useGameStore = create<GameStore>()(
       setAlphaConvertsRemaining: (val) => set({ alphaConvertsRemaining: val }),
     }),
     {
-      name: "werewolf-game-state",
+      name: "werewolf-game-state-v2",
       partialize: (state) => ({
         phase: state.phase,
         players: state.players,
