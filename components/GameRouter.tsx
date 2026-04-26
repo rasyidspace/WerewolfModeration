@@ -41,12 +41,9 @@ export default function GameRouter() {
 
   return (
     <div
-      className="relative flex flex-col"
-      style={{ height: "100dvh", background: "var(--bg-primary)" }}
+      className="relative flex flex-col items-center"
+      style={{ height: "100dvh", background: "var(--bg-primary)", overflow: "hidden" }}
     >
-      {/* Fixed phase indicator */}
-      <PhaseIndicator />
-
       {/* Ambient background glow */}
       <div
         className="fixed inset-0 pointer-events-none z-0"
@@ -60,43 +57,28 @@ export default function GameRouter() {
         }}
       />
 
-      {/* Scrollable content area */}
+      {/* Main Centered Container */}
       <div
-        className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden"
-        style={{ paddingTop: "56px" }}
+        className="relative z-10 w-full flex flex-col"
+        style={{ maxWidth: 520, height: "100dvh" }}
       >
-        {/* Centering wrapper — fills height so sticky footers work */}
-        <div
-          style={{
-            minHeight: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 520,
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={phase}
-                variants={pageVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={pageTransition}
-                style={{ flex: 1, display: "flex", flexDirection: "column" }}
-              >
-                {renderScreen()}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        <PhaseIndicator />
+
+        {/* Screen Container */}
+        <div className="flex-1 flex flex-col relative overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={phase}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}
+            >
+              {renderScreen()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

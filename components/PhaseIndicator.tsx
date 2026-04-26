@@ -24,7 +24,7 @@ export default function PhaseIndicator() {
 
   return (
     <motion.header
-      className="fixed top-0 left-0 right-0 z-40"
+      className="relative z-40 flex-shrink-0 w-full"
       style={{
         height: "56px",
         background: "rgba(10,10,15,0.92)",
@@ -36,8 +36,8 @@ export default function PhaseIndicator() {
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      {/* Inner row — same max-width as content */}
-      <div className="h-full mx-auto w-full max-w-lg flex items-center justify-between px-4">
+      {/* Inner row */}
+      <div className="h-full w-full flex items-center justify-between" style={{ padding: "0 20px" }}>
 
         {/* Phase badge */}
         <motion.div

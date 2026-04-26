@@ -32,7 +32,7 @@ export default function SetupScreen() {
   };
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 h-full overflow-hidden">
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto px-5 pt-5 pb-4">
 

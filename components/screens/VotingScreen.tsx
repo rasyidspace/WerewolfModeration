@@ -6,16 +6,20 @@ import { checkWinCondition } from "@/lib/nightResolution";
 import { ROLE_DEFINITIONS } from "@/lib/roles";
 import { useState } from "react";
 import { Vote, Plus, Minus, SkipForward, AlertTriangle } from "lucide-react";
+import PlayerSelector from "@/components/PlayerSelector";
+import FullscreenModal from "@/components/FullscreenModal";
 
 export default function VotingScreen() {
   const {
     players, addVote, resetVotes, eliminatePlayer,
     setPhase, setWinCondition, nextRound, addLog,
-    settings, jesterId, round,
+    settings, jesterId, round, hunterShoot
   } = useGameStore();
 
   const [confirmed, setConfirmed] = useState(false);
   const [eliminatedId, setEliminatedId] = useState<string | null>(null);
+  const [showHunterModal, setShowHunterModal] = useState(false);
+  const [hunterTarget, setHunterTarget] = useState<string | null>(null);
 
   const alivePlayers = players.filter((p) => p.isAlive);
   const maxVotes = alivePlayers.length > 0 ? Math.max(...alivePlayers.map((p) => p.votes)) : 0;
@@ -35,11 +39,34 @@ export default function VotingScreen() {
     addLog(`Day ${round}: ${target.name} was voted out.`);
 
     setTimeout(() => {
-      const updatedPlayers = useGameStore.getState().players;
-      const win = checkWinCondition(updatedPlayers, isJester, jesterId);
-      if (win) { setWinCondition(win); setPhase("end"); }
-      else { nextRound(); setPhase("night"); }
+      const state = useGameStore.getState();
+      const win = checkWinCondition(state.players, isJester, jesterId);
+      if (win) { 
+        setWinCondition(win); 
+        setPhase("end"); 
+      } else if (state.hunterActive) {
+        setShowHunterModal(true);
+      } else { 
+        nextRound(); 
+        setPhase("night"); 
+      }
     }, 2200);
+  };
+
+  const handleHunterShoot = () => {
+    if (!hunterTarget) return;
+    hunterShoot(hunterTarget);
+    addLog(`Hunter shot ${players.find((p) => p.id === hunterTarget)?.name} after being voted out.`);
+    
+    const state = useGameStore.getState();
+    const win = checkWinCondition(state.players, false, jesterId);
+    if (win) { 
+      setWinCondition(win); 
+      setPhase("end"); 
+    } else { 
+      nextRound(); 
+      setPhase("night"); 
+    }
   };
 
   const handleSkip = () => {
@@ -51,7 +78,7 @@ export default function VotingScreen() {
   const eliminatedPlayer = players.find((p) => p.id === eliminatedId);
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 h-full overflow-hidden">
       {/* ── Header ── */}
       <div className="flex-shrink-0" style={{ padding: "20px 20px 16px" }}>
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
@@ -270,6 +297,40 @@ export default function VotingScreen() {
           </div>
         </div>
       )}
+
+      {/* ── Hunter Modal ── */}
+      <FullscreenModal isOpen={showHunterModal}>
+        <div className="flex flex-col h-full bg-black/40">
+          <div className="flex-shrink-0" style={{ padding: "20px 20px 16px" }}>
+            <h1 className="text-xl font-bold text-amber-500 mb-1" style={{ fontFamily: "var(--font-cinzel)" }}>Hunter&apos;s Last Shot</h1>
+            <p className="text-sm text-gray-400">The Hunter was voted out! Before they go, they can take one player down with them.</p>
+          </div>
+          <div className="flex-1 overflow-y-auto" style={{ padding: "0 20px 16px" }}>
+             <PlayerSelector
+                players={players}
+                selectedId={hunterTarget}
+                onSelect={setHunterTarget}
+                excludeIds={[eliminatedId ?? ""]}
+                label="Hunter picks their final target"
+             />
+          </div>
+          <div className="flex-shrink-0" style={{ padding: "16px 20px", background: "rgba(10,10,15,0.96)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <motion.button
+              onClick={handleHunterShoot}
+              disabled={!hunterTarget}
+              className="w-full rounded-2xl font-bold text-base"
+              style={{
+                padding: "16px 24px",
+                background: hunterTarget ? "linear-gradient(135deg, #f59e0b, #d97706)" : "rgba(255,255,255,0.07)",
+                color: hunterTarget ? "white" : "#4b5563",
+              }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Fire! 🏹
+            </motion.button>
+          </div>
+        </div>
+      </FullscreenModal>
     </div>
   );
 }

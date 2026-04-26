@@ -20,7 +20,7 @@ export default function NightPhaseScreen() {
   const enabledRoles = roleConfigs.filter((rc) => rc.enabled).map((rc) => rc.role);
   const nightRoles = getNightRoles(enabledRoles).filter((role) => {
     if (role === "Cupid" && round > 1) return false;
-    return players.some((p) => p.isAlive && p.role === role);
+    return players.some((p) => p.role === role);
   });
 
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
@@ -33,6 +33,7 @@ export default function NightPhaseScreen() {
   const [visible, setVisible] = useState(true);
 
   const currentRole = nightRoles[currentNightStep];
+  const isRoleAlive = players.some((p) => p.isAlive && p.role === currentRole);
   const totalSteps = nightRoles.length;
   const isLastStep = currentNightStep >= totalSteps - 1;
   const wwTarget = nightActions.find((a) => a.role === "Werewolf")?.targetId ?? null;
@@ -57,43 +58,50 @@ export default function NightPhaseScreen() {
     const isEvil = target.role === "Werewolf" || target.role === "SerialKiller";
     setSeerResult({ name: target.name, isEvil });
     setShowSeerResult(true);
-    setNightAction({
-      role: "Seer",
-      actorId: players.find((p) => p.isAlive && p.role === "Seer")?.id ?? null,
-      targetId: selectedTarget,
-    });
+    
+    if (isRoleAlive) {
+      setNightAction({
+        role: "Seer",
+        actorId: players.find((p) => p.isAlive && p.role === "Seer")?.id ?? null,
+        targetId: selectedTarget,
+      });
+    }
     setStepComplete(true);
   };
 
   const handleConfirmStep = () => {
     if (!currentRole) return;
-    if (currentRole === "Witch") {
-      if (witchChoice === "heal" && wwTarget) {
-        setNightAction({ role: "WitchHeal", actorId: null, targetId: wwTarget });
-        useGameStore.setState({ witchHealUsed: true });
-      } else if (witchChoice === "poison" && witchPoisonTarget) {
-        setNightAction({ role: "WitchPoison", actorId: null, targetId: witchPoisonTarget });
-        useGameStore.setState({ witchPoisonUsed: true });
-      }
-    } else if (currentRole === "Cupid") {
-      if (selectedTargets.length === 2) {
-        const [a, b] = selectedTargets;
-        useGameStore.setState((state) => ({
-          players: state.players.map((p) =>
-            p.id === a ? { ...p, loverId: b } : p.id === b ? { ...p, loverId: a } : p
-          ),
-        }));
-      }
-    } else if (currentRole !== "Seer") {
-      if (selectedTarget) {
-        const action: NightAction = {
-          role: currentRole as NightAction["role"],
-          actorId: players.find((p) => p.isAlive && p.role === currentRole)?.id ?? null,
-          targetId: selectedTarget,
-        };
-        setNightAction(action);
+
+    if (isRoleAlive) {
+      if (currentRole === "Witch") {
+        if (witchChoice === "heal" && wwTarget) {
+          setNightAction({ role: "WitchHeal", actorId: null, targetId: wwTarget });
+          useGameStore.setState({ witchHealUsed: true });
+        } else if (witchChoice === "poison" && witchPoisonTarget) {
+          setNightAction({ role: "WitchPoison", actorId: null, targetId: witchPoisonTarget });
+          useGameStore.setState({ witchPoisonUsed: true });
+        }
+      } else if (currentRole === "Cupid") {
+        if (selectedTargets.length === 2) {
+          const [a, b] = selectedTargets;
+          useGameStore.setState((state) => ({
+            players: state.players.map((p) =>
+              p.id === a ? { ...p, loverId: b } : p.id === b ? { ...p, loverId: a } : p
+            ),
+          }));
+        }
+      } else if (currentRole !== "Seer") {
+        if (selectedTarget) {
+          const action: NightAction = {
+            role: currentRole as NightAction["role"],
+            actorId: players.find((p) => p.isAlive && p.role === currentRole)?.id ?? null,
+            targetId: selectedTarget,
+          };
+          setNightAction(action);
+        }
       }
     }
+    
     advanceStep();
   };
 
@@ -137,7 +145,7 @@ export default function NightPhaseScreen() {
 
   return (
     <div
-      className="flex flex-col flex-1"
+      className="flex flex-col flex-1 h-full overflow-hidden"
       style={{ background: "linear-gradient(180deg, #060612 0%, #0a0a1a 100%)" }}
     >
       <div className="stars-bg" />
@@ -227,9 +235,14 @@ export default function NightPhaseScreen() {
                   >
                     {roleDef.displayName}
                   </h2>
-                  <p className="text-sm text-gray-400 leading-relaxed">
+                  <p className="text-sm text-gray-400 leading-relaxed mb-2">
                     {roleDef.nightInstruction}
                   </p>
+                  {!isRoleAlive && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mt-1" style={{ background: "rgba(220,38,38,0.15)", color: "#f87171", border: "1px solid rgba(220,38,38,0.3)" }}>
+                      <span>💀</span> Role is dead (Fake wake)
+                    </div>
+                  )}
                 </div>
               </div>
 

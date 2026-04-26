@@ -42,7 +42,7 @@ export default function PlayerInputScreen() {
   };
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 h-full overflow-hidden">
       {/* ── Fixed header section ── */}
       <div className="flex-shrink-0" style={{ padding: "20px 20px 16px" }}>
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>

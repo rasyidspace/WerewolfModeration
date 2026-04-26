@@ -54,7 +54,7 @@ export default function RoleDistributionScreen() {
   };
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 h-full overflow-hidden">
       {/* ── Role reveal modal ── */}
       <FullscreenModal isOpen={activePlayerId !== null}>
         {role && activePlayer && (
@@ -171,7 +171,7 @@ export default function RoleDistributionScreen() {
       </FullscreenModal>
 
       {/* ── Header ── */}
-      <div className="flex-shrink-0 px-5 pt-5 pb-4">
+      <div className="flex-shrink-0" style={{ padding: "20px 20px 16px" }}>
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
           <h1
             className="text-xl font-bold text-white mb-1"
@@ -206,7 +206,7 @@ export default function RoleDistributionScreen() {
       </div>
 
       {/* ── Scrollable player grid ── */}
-      <div className="flex-1 overflow-y-auto px-5 pb-4">
+      <div className="flex-1 overflow-y-auto" style={{ padding: "0 20px 16px" }}>
         <div className="grid grid-cols-2 gap-3">
           {players.map((player, i) => (
             <motion.button
@@ -270,8 +270,9 @@ export default function RoleDistributionScreen() {
       <AnimatePresence>
         {allRevealed && (
           <motion.div
-            className="flex-shrink-0 px-5 py-4"
+            className="flex-shrink-0"
             style={{
+              padding: "16px 20px",
               borderTop: "1px solid rgba(255,255,255,0.07)",
               background: "rgba(10,10,15,0.96)",
             }}

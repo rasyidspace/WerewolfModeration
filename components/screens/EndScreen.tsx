@@ -23,7 +23,7 @@ export default function EndScreen() {
   });
 
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto">
+    <div className="flex flex-col flex-1 h-full overflow-hidden overflow-y-auto">
       {/* ── Winner hero ── */}
       <div
         className="relative flex-shrink-0 flex flex-col items-center justify-center text-center overflow-hidden"

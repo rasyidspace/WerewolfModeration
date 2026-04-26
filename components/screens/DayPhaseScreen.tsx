@@ -67,7 +67,7 @@ export default function DayPhaseScreen() {
 
   return (
     <div
-      className="flex flex-col flex-1"
+      className="flex flex-col flex-1 h-full overflow-hidden"
       style={{ background: "linear-gradient(180deg, #0f0e04 0%, #0a0a0a 100%)" }}
     >
       {/* ── Header ── */}
