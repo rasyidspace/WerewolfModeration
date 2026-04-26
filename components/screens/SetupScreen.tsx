@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "@/lib/gameStore";
 import { ROLE_DEFINITIONS, ALL_ROLES, type RoleName } from "@/lib/roles";
 import { useState } from "react";
@@ -15,6 +15,7 @@ const TEAM_COLORS: Record<string, string> = {
 export default function SetupScreen() {
   const { roleConfigs, setRoleConfig, players, setPhase, settings, updateSetting } = useGameStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [popupRole, setPopupRole] = useState<RoleName | null>(null);
 
   const totalAssigned = roleConfigs.reduce(
     (sum, rc) => sum + (rc.enabled ? rc.count : 0),
@@ -95,8 +96,8 @@ export default function SetupScreen() {
           )}
         </motion.div>
 
-        {/* Role list */}
-        <div className="flex flex-col gap-2.5">
+        {/* Role list grid */}
+        <div className="grid grid-cols-2 gap-3">
           {ALL_ROLES.map((roleName, i) => {
             const def = ROLE_DEFINITIONS[roleName];
             const config = roleConfigs.find((r) => r.role === roleName)!;
@@ -105,96 +106,77 @@ export default function SetupScreen() {
             return (
               <motion.div
                 key={roleName}
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.3 }}
-                className="rounded-2xl overflow-hidden"
+                onClick={() => setPopupRole(roleName)}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ delay: i * 0.03, duration: 0.2 }}
+                className="rounded-[20px] p-4 flex flex-col relative overflow-hidden cursor-pointer"
                 style={{
                   background: isEnabled
-                    ? `linear-gradient(135deg, ${def.color}12, rgba(22,22,31,0.95))`
-                    : "rgba(18,18,24,0.7)",
+                    ? `linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))`
+                    : "rgba(18,18,24,0.5)",
                   border: isEnabled
-                    ? `1px solid ${def.color}30`
-                    : "1px solid rgba(255,255,255,0.06)",
+                    ? `1px solid ${def.color}40`
+                    : "1px solid rgba(255,255,255,0.05)",
+                  boxShadow: isEnabled ? `inset 0 0 20px ${def.color}08` : "none",
+                  opacity: isEnabled ? 1 : 0.65,
                 }}
               >
-                <div className="flex items-center" style={{ gap: 16, padding: "20px 24px" }}>
-                  {/* Icon */}
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: isEnabled ? `${def.color}18` : "rgba(255,255,255,0.05)" }}
-                  >
-                    {def.icon}
-                  </div>
+                {/* Top: Icon + Badge */}
+                <div className="flex items-start justify-between mb-3">
+                   <div className="text-3xl filter drop-shadow-md">{def.icon}</div>
+                   <span
+                     className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                     style={{
+                       background: `${TEAM_COLORS[def.team]}20`,
+                       color: TEAM_COLORS[def.team],
+                     }}
+                   >
+                     {def.team}
+                   </span>
+                </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                      <span
-                        className="font-semibold text-sm"
-                        style={{ color: isEnabled ? "#f1f1f7" : "#6b7280" }}
-                      >
-                        {def.displayName}
-                      </span>
-                      <span
-                        className="text-xs px-1.5 py-0.5 rounded-full font-medium leading-none"
-                        style={{
-                          background: `${TEAM_COLORS[def.team]}18`,
-                          color: TEAM_COLORS[def.team],
-                        }}
-                      >
-                        {def.team}
-                      </span>
-                    </div>
-                    <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "#6b7280" }}>
-                      {def.description}
-                    </p>
-                  </div>
+                {/* Middle: Name */}
+                <h3 className="font-bold text-base leading-tight mb-5 flex-1 text-white">
+                  {def.displayName}
+                </h3>
 
-                  {/* Count controls */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {isEnabled && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleCount(roleName, -1)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center"
-                          style={{ background: "rgba(255,255,255,0.07)" }}
-                        >
-                          <Minus size={12} style={{ color: "#9ca3af" }} />
-                        </button>
-                        <span
-                          className="w-6 text-center text-sm font-bold"
-                          style={{ color: def.color }}
-                        >
-                          {config.count}
-                        </span>
-                        <button
-                          onClick={() => handleCount(roleName, 1)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center"
-                          style={{ background: "rgba(255,255,255,0.07)" }}
-                        >
-                          <Plus size={12} style={{ color: "#9ca3af" }} />
-                        </button>
-                      </div>
-                    )}
+                {/* Bottom: Controls */}
+                <div className="flex items-center justify-between mt-auto">
+                   {isEnabled ? (
+                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                       <button
+                         onClick={() => handleCount(roleName, -1)}
+                         className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors"
+                       >
+                         <Minus size={12} className="text-gray-400" />
+                       </button>
+                       <span className="w-5 text-center text-sm font-bold" style={{ color: def.color }}>
+                         {config.count}
+                       </span>
+                       <button
+                         onClick={() => handleCount(roleName, 1)}
+                         className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors"
+                       >
+                         <Plus size={12} className="text-gray-400" />
+                       </button>
+                     </div>
+                   ) : (
+                     <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Disabled</span>
+                   )}
 
-                    {/* Toggle pill */}
-                    <button
-                      onClick={() => handleToggle(roleName)}
-                      className="relative rounded-full transition-all duration-300 flex-shrink-0"
-                      style={{
-                        width: 44,
-                        height: 24,
-                        background: isEnabled ? def.color : "rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      <motion.div
-                        className="absolute top-[4px] w-4 h-4 bg-white rounded-full shadow"
-                        animate={{ left: isEnabled ? "calc(100% - 20px)" : "4px" }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      />
-                    </button>
-                  </div>
+                   {/* Toggle */}
+                   <button
+                     onClick={(e) => { e.stopPropagation(); handleToggle(roleName); }}
+                     className="relative rounded-full transition-all duration-300 flex-shrink-0"
+                     style={{ width: 36, height: 20, background: isEnabled ? def.color : "rgba(255,255,255,0.1)" }}
+                   >
+                     <div
+                       className="absolute top-[3px] w-3.5 h-3.5 bg-white rounded-full shadow transition-all duration-300"
+                       style={{ left: isEnabled ? "calc(100% - 17.5px)" : "3px" }}
+                     />
+                   </button>
                 </div>
               </motion.div>
             );
@@ -295,6 +277,51 @@ export default function SetupScreen() {
           <ChevronRight size={16} />
         </motion.button>
       </div>
+
+      {/* ── ROLE DETAIL POPUP ── */}
+      <AnimatePresence>
+        {popupRole && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md" onClick={() => setPopupRole(null)}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#111118] border border-white/10 p-6 rounded-[32px] w-full max-w-[340px] shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 blur-[60px] rounded-full pointer-events-none" style={{ background: `${ROLE_DEFINITIONS[popupRole].color}30` }} />
+              
+              <div className="text-center relative z-10">
+                <div className="text-6xl mb-3 filter drop-shadow-lg">{ROLE_DEFINITIONS[popupRole].icon}</div>
+                <h2 className="text-2xl font-bold text-white mb-2">{ROLE_DEFINITIONS[popupRole].displayName}</h2>
+                <div className="inline-block px-3 py-1 mb-6 rounded-full text-xs font-bold uppercase tracking-wider" style={{ background: `${TEAM_COLORS[ROLE_DEFINITIONS[popupRole].team]}20`, color: TEAM_COLORS[ROLE_DEFINITIONS[popupRole].team] }}>
+                   {ROLE_DEFINITIONS[popupRole].team} Team
+                </div>
+              </div>
+
+              <div className="relative z-10 space-y-4 text-left bg-white/5 p-4 rounded-2xl">
+                 <div>
+                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Description</h4>
+                    <p className="text-sm text-gray-300 leading-relaxed">{ROLE_DEFINITIONS[popupRole].description}</p>
+                 </div>
+                 {ROLE_DEFINITIONS[popupRole].nightInstruction && (
+                   <div>
+                      <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Night Action</h4>
+                      <p className="text-sm text-gray-300 leading-relaxed italic border-l-2 pl-3" style={{ borderColor: ROLE_DEFINITIONS[popupRole].color }}>"{ROLE_DEFINITIONS[popupRole].nightInstruction}"</p>
+                   </div>
+                 )}
+              </div>
+              
+              <button 
+                onClick={() => setPopupRole(null)} 
+                className="w-full mt-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 font-bold text-white transition-colors relative z-10"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
