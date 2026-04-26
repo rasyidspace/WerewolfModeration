@@ -36,8 +36,7 @@ export default function SetupScreen() {
 
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden">
-      {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-8 pt-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-8">
 
         {/* Page heading */}
         <motion.div
@@ -97,7 +96,7 @@ export default function SetupScreen() {
         </motion.div>
 
         {/* Role list grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           {ALL_ROLES.map((roleName, i) => {
             const def = ROLE_DEFINITIONS[roleName];
             const config = roleConfigs.find((r) => r.role === roleName)!;
@@ -111,7 +110,7 @@ export default function SetupScreen() {
                 animate={{ opacity: 1, scale: 1 }}
                 whileTap={{ scale: 0.96 }}
                 transition={{ delay: i * 0.03, duration: 0.2 }}
-                className="rounded-[20px] p-4 flex flex-col relative overflow-hidden cursor-pointer"
+                className="rounded-[20px] p-4 flex flex-col relative overflow-hidden cursor-pointer aspect-square"
                 style={{
                   background: isEnabled
                     ? `linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))`
@@ -120,14 +119,22 @@ export default function SetupScreen() {
                     ? `1px solid ${def.color}40`
                     : "1px solid rgba(255,255,255,0.05)",
                   boxShadow: isEnabled ? `inset 0 0 20px ${def.color}08` : "none",
-                  opacity: isEnabled ? 1 : 0.65,
+                  opacity: isEnabled ? 1 : 0.4,
+                  filter: isEnabled ? "none" : "grayscale(50%)",
                 }}
               >
-                {/* Top: Icon + Badge */}
-                <div className="flex items-start justify-between mb-3">
-                   <div className="text-3xl filter drop-shadow-md">{def.icon}</div>
+                {/* Top: Icon + Name */}
+                <div className="flex flex-col items-center justify-center gap-2 mt-1">
+                   <div className="text-[40px] leading-none filter drop-shadow-md">{def.icon}</div>
+                   <h3 className="font-bold text-sm text-center text-white leading-tight">
+                     {def.displayName}
+                   </h3>
+                </div>
+
+                {/* Middle: Badge */}
+                <div className="flex justify-center mt-2 mb-auto">
                    <span
-                     className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                     className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
                      style={{
                        background: `${TEAM_COLORS[def.team]}20`,
                        color: TEAM_COLORS[def.team],
@@ -137,33 +144,30 @@ export default function SetupScreen() {
                    </span>
                 </div>
 
-                {/* Middle: Name */}
-                <h3 className="font-bold text-base leading-tight mb-5 flex-1 text-white">
-                  {def.displayName}
-                </h3>
-
                 {/* Bottom: Controls */}
-                <div className="flex items-center justify-between mt-auto">
+                <div className="flex items-center justify-between w-full mt-2">
                    {isEnabled ? (
                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                       <button
+                       <motion.button
+                         whileTap={{ scale: 0.85 }}
                          onClick={() => handleCount(roleName, -1)}
                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors"
                        >
                          <Minus size={12} className="text-gray-400" />
-                       </button>
-                       <span className="w-5 text-center text-sm font-bold" style={{ color: def.color }}>
+                       </motion.button>
+                       <span className="w-4 text-center text-sm font-bold" style={{ color: def.color }}>
                          {config.count}
                        </span>
-                       <button
+                       <motion.button
+                         whileTap={{ scale: 0.85 }}
                          onClick={() => handleCount(roleName, 1)}
                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 hover:bg-white/10 transition-colors"
                        >
                          <Plus size={12} className="text-gray-400" />
-                       </button>
+                       </motion.button>
                      </div>
                    ) : (
-                     <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Disabled</span>
+                     <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Disabled</span>
                    )}
 
                    {/* Toggle */}
