@@ -37,8 +37,9 @@ export interface NightAction {
   role: "WerewolfTeam" | "Seer" | "Doctor" | "Bodyguard" | "WitchHeal" | "WitchPoison" | "SerialKiller" | "Cupid";
   actorId: string | null;
   targetId: string | null;
-  werewolfVotes?: Record<string, string>;
+  werewolfVotes?: Record<string, number>;
   alphaConvertId?: string | null;
+  wolfSeerTargetId?: string | null;
 }
 
 export interface SeerResult {
