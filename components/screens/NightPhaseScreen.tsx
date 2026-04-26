@@ -36,11 +36,11 @@ export default function NightPhaseScreen() {
   const [visible, setVisible] = useState(true);
 
   // Werewolf Team States
-  const [wwVotes, setWwVotes] = useState<Record<string, number>>({});
   const [alphaOverrideId, setAlphaOverrideId] = useState<string | null>(null);
   const [alphaConvertId, setAlphaConvertId] = useState<string | null>(null);
   const [wolfSeerTargetId, setWolfSeerTargetId] = useState<string | null>(null);
   const [showWolfSeerResult, setShowWolfSeerResult] = useState(false);
+  const [showWolfSeerModal, setShowWolfSeerModal] = useState(false);
   const [wolfSeerResult, setWolfSeerResult] = useState<{name: string; role: RoleName} | null>(null);
 
   const currentRole = nightRoles[currentNightStep];
@@ -62,8 +62,6 @@ export default function NightPhaseScreen() {
   const roleDef = currentRole === "WerewolfTeam" ? wwTeamDef : (currentRole ? ROLE_DEFINITIONS[currentRole as RoleName] : null);
 
   const aliveWolvesCount = players.filter(p => p.isAlive && p.role && ["Werewolf", "AlphaWerewolf", "WolfSeer"].includes(p.role)).length;
-  const totalWwVotes = Object.values(wwVotes).reduce((a,b) => a+b, 0);
-  const canAddWwVote = totalWwVotes < aliveWolvesCount;
 
   useEffect(() => {
     setSelectedTarget(null);
@@ -74,7 +72,6 @@ export default function NightPhaseScreen() {
     setStepComplete(false);
     setShowSeerResult(false);
     setVisible(true);
-    setWwVotes({});
     setAlphaOverrideId(null);
     setAlphaConvertId(null);
     setWolfSeerTargetId(null);
@@ -100,35 +97,10 @@ export default function NightPhaseScreen() {
     setStepComplete(true);
   };
 
-  const handleWwVote = (targetId: string, delta: number) => {
-     setWwVotes(prev => {
-        const current = prev[targetId] || 0;
-        const newVal = Math.max(0, current + delta);
-        if (newVal === 0) {
-           const next = {...prev};
-           delete next[targetId];
-           return next;
-        }
-        return {...prev, [targetId]: newVal};
-     });
-  };
-
   const getFinalWwTarget = () => {
-    if (alphaConvertId) return null; // Convert overrides kill
+    if (alphaConvertId) return null;
     if (alphaOverrideId) return alphaOverrideId;
-
-    let max = 0;
-    let leaders: string[] = [];
-    for (const [targetId, votes] of Object.entries(wwVotes)) {
-      if (votes > max) { max = votes; leaders = [targetId]; }
-      else if (votes === max) { leaders.push(targetId); }
-    }
-    
-    if (leaders.length === 1) return leaders[0];
-    if (leaders.length > 1) {
-       return leaders[Math.floor(Math.random() * leaders.length)];
-    }
-    return null;
+    return selectedTarget;
   };
 
   const handleConfirmStep = () => {
@@ -141,7 +113,6 @@ export default function NightPhaseScreen() {
            actorId: null,
            targetId: getFinalWwTarget(),
            alphaConvertId: alphaConvertId,
-           werewolfVotes: wwVotes,
            wolfSeerTargetId: wolfSeerTargetId,
          };
          setNightAction(action);
@@ -193,7 +164,7 @@ export default function NightPhaseScreen() {
     if (currentRole === "Seer") return stepComplete;
     if (currentRole === "Witch") return true;
     if (currentRole === "Cupid") return selectedTargets.length === 2;
-    if (currentRole === "WerewolfTeam") return true; // Allows passing or arbitrary voting
+    if (currentRole === "WerewolfTeam") return true;
     return selectedTarget !== null;
   })();
 
@@ -226,7 +197,6 @@ export default function NightPhaseScreen() {
     >
       <div className="stars-bg" />
 
-      {/* ── Header ── */}
       <div className="relative z-10 flex-shrink-0" style={{ padding: "20px 20px 16px" }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -243,7 +213,6 @@ export default function NightPhaseScreen() {
           </span>
         </div>
 
-        {/* Step dots */}
         <div className="flex gap-1.5">
           {nightRoles.map((_, i) => (
             <div
@@ -262,7 +231,6 @@ export default function NightPhaseScreen() {
         </div>
       </div>
 
-      {/* ── Scrollable role content ── */}
       <div className="relative z-10 flex-1 overflow-y-auto" style={{ padding: "0 20px 16px" }}>
         <AnimatePresence mode="wait">
           {visible && roleDef && (
@@ -274,7 +242,6 @@ export default function NightPhaseScreen() {
               transition={{ duration: 0.25 }}
               className="flex flex-col gap-4"
             >
-              {/* Role card */}
               <div
                 className="flex flex-col items-center gap-4 rounded-2xl text-center"
                 style={{
@@ -322,7 +289,6 @@ export default function NightPhaseScreen() {
                 </div>
               </div>
 
-              {/* ── SEER ── */}
               {currentRole === "Seer" && (
                 <div className="flex flex-col gap-3">
                   <PlayerSelector
@@ -374,7 +340,6 @@ export default function NightPhaseScreen() {
                 </div>
               )}
 
-              {/* ── WITCH ── */}
               {currentRole === "Witch" && (
                 <div className="flex flex-col gap-3">
                   {wwTargetName ? (
@@ -420,9 +385,6 @@ export default function NightPhaseScreen() {
                         ☠️ Use Poison Potion
                       </button>
                     )}
-                    {witchHealUsed && witchPoisonUsed && (
-                      <p className="text-center text-sm text-gray-600 py-2">Both potions have been used.</p>
-                    )}
                   </div>
 
                   {witchChoice === "poison" && (
@@ -438,7 +400,6 @@ export default function NightPhaseScreen() {
                 </div>
               )}
 
-              {/* ── CUPID ── */}
               {currentRole === "Cupid" && round === 1 && (
                 <PlayerSelector
                   players={players}
@@ -452,95 +413,69 @@ export default function NightPhaseScreen() {
                 />
               )}
 
-              {/* ── WEREWOLF TEAM ── */}
               {currentRole === "WerewolfTeam" && (
                 <div className="flex flex-col gap-4">
-                  {/* Wolf Seer Section */}
-                  {players.some(p => p.role === "WolfSeer" && p.isAlive) && (
-                     <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                       <h3 className="text-red-400 font-bold mb-2">👁️ Wolf Seer</h3>
-                       {showWolfSeerResult && wolfSeerResult ? (
-                          <div className="text-center p-3 bg-red-900/30 rounded-xl border border-red-500/30">
-                            <p className="font-bold text-white">{wolfSeerResult.name} is {ROLE_DEFINITIONS[wolfSeerResult.role].displayName}</p>
-                          </div>
-                       ) : (
-                          <>
-                            <PlayerSelector 
-                              players={players} 
-                              selectedId={wolfSeerTargetId} 
-                              onSelect={setWolfSeerTargetId} 
-                              excludeIds={players.filter(p=>p.role==="WolfSeer").map(p=>p.id)} 
-                              label="Select target to inspect"
-                            />
-                            <button 
-                              onClick={() => {
-                               const target = players.find(p=>p.id===wolfSeerTargetId);
-                               if(target && target.role) {
-                                  setWolfSeerResult({name: target.name, role: target.role});
-                                  setShowWolfSeerResult(true);
-                               }
-                              }} 
-                              disabled={!wolfSeerTargetId} 
-                              className="w-full mt-3 p-3 rounded-xl bg-red-900/50 hover:bg-red-800/60 font-bold text-white disabled:opacity-50 transition-colors"
-                            >
-                              Inspect Role
-                            </button>
-                          </>
-                       )}
-                     </div>
-                  )}
-
-                  {/* Team Voting Section */}
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-red-400 font-bold">🐺 Pack Voting</h3>
-                        <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-full">{totalWwVotes}/{aliveWolvesCount} Votes</span>
-                     </div>
-                     <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-                        {players.filter(p => p.isAlive && !["Werewolf", "AlphaWerewolf", "WolfSeer", "Minion"].includes(p.role!)).map(p => {
-                           const votes = wwVotes[p.id] || 0;
-                           return (
-                              <div key={p.id} className="flex items-center justify-between p-2 rounded-xl bg-white/5">
-                                 <span className="text-sm font-medium text-gray-200">{p.name}</span>
-                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => handleWwVote(p.id, -1)} disabled={votes===0} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 disabled:opacity-30"><Minus size={14}/></button>
-                                    <span className="w-6 text-center font-bold text-red-400">{votes}</span>
-                                    <button onClick={() => handleWwVote(p.id, 1)} disabled={!canAddWwVote} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/20 text-red-400 disabled:opacity-30"><Plus size={14}/></button>
-                                 </div>
-                              </div>
-                           )
-                        })}
-                     </div>
-                  </div>
-
-                  {/* Alpha Action Section */}
                   {players.some(p => p.role === "AlphaWerewolf" && p.isAlive) && (
                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                       <h3 className="text-amber-500 font-bold mb-3">👑 Alpha Decision</h3>
-                       <div className="flex gap-2 mb-4">
-                          <button onClick={() => { setAlphaConvertId(null); setAlphaOverrideId(null); }} className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors ${!alphaOverrideId && !alphaConvertId ? 'bg-amber-600 text-white' : 'bg-white/10 text-gray-400'}`}>Follow Team</button>
-                          
+                       <h3 className="text-amber-500 font-bold mb-3 text-lg">👑 Alpha Decision</h3>
+                       <div className="flex flex-col gap-2">
+                          <button onClick={() => { setAlphaConvertId(null); setAlphaOverrideId(null); }} className={`w-full py-4 text-base font-bold rounded-xl transition-colors ${!alphaOverrideId && !alphaConvertId ? 'bg-amber-600 text-white shadow-lg' : 'bg-white/10 text-gray-400'}`}>Follow Team</button>
                           {useGameStore.getState().settings.alphaOverrideVote && (
-                            <button onClick={() => { setAlphaConvertId(null); setAlphaOverrideId(players.filter(p=>p.isAlive)[0].id); }} className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors ${alphaOverrideId ? 'bg-amber-600 text-white' : 'bg-white/10 text-gray-400'}`}>Override</button>
+                            <button onClick={() => { setAlphaConvertId(null); setAlphaOverrideId(players.filter(p=>p.isAlive)[0].id); }} className={`w-full py-4 text-base font-bold rounded-xl transition-colors ${alphaOverrideId ? 'bg-amber-600 text-white shadow-lg' : 'bg-white/10 text-gray-400'}`}>Override Kill</button>
                           )}
-                          
                           {useGameStore.getState().alphaConvertsRemaining > 0 && (
-                            <button onClick={() => { setAlphaOverrideId(null); setAlphaConvertId(players.filter(p=>p.isAlive)[0].id); }} className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors ${alphaConvertId ? 'bg-amber-600 text-white' : 'bg-white/10 text-gray-400'}`}>Convert ({useGameStore.getState().alphaConvertsRemaining})</button>
+                            <button onClick={() => { setAlphaOverrideId(null); setAlphaConvertId(players.filter(p=>p.isAlive)[0].id); }} className={`w-full py-4 text-base font-bold rounded-xl transition-colors ${alphaConvertId ? 'bg-amber-600 text-white shadow-lg' : 'bg-white/10 text-gray-400'}`}>Convert Target ({useGameStore.getState().alphaConvertsRemaining})</button>
                           )}
                        </div>
                        
                        {alphaOverrideId && (
-                          <PlayerSelector players={players} selectedId={alphaOverrideId} onSelect={setAlphaOverrideId} label="Alpha chooses kill target" />
+                          <div className="mt-4"><PlayerSelector players={players} selectedId={alphaOverrideId} onSelect={setAlphaOverrideId} label="Alpha chooses kill target" /></div>
                        )}
                        {alphaConvertId && (
-                          <PlayerSelector players={players} selectedId={alphaConvertId} onSelect={setAlphaConvertId} label="Alpha chooses convert target" excludeIds={players.filter(p=>useGameStore.getState().settings.rolesImmuneToConvert.includes(p.role!)).map(p=>p.id)} />
+                          <div className="mt-4"><PlayerSelector players={players} selectedId={alphaConvertId} onSelect={setAlphaConvertId} label="Alpha chooses convert target" excludeIds={players.filter(p=>useGameStore.getState().settings.rolesImmuneToConvert.includes(p.role!)).map(p=>p.id)} /></div>
                        )}
                      </div>
                   )}
+
+                  {players.some(p => p.role === "WolfSeer" && p.isAlive) && (
+                     <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                       <h3 className="text-red-400 font-bold mb-2">👁️ Wolf Seer</h3>
+                       <PlayerSelector 
+                         players={players} 
+                         selectedId={wolfSeerTargetId} 
+                         onSelect={setWolfSeerTargetId} 
+                         excludeIds={players.filter(p=>p.role==="WolfSeer").map(p=>p.id)} 
+                         label="Select target to inspect"
+                       />
+                       <button 
+                         onClick={() => {
+                          const target = players.find(p=>p.id===wolfSeerTargetId);
+                          if(target && target.role) {
+                             setWolfSeerResult({name: target.name, role: target.role});
+                             setShowWolfSeerModal(true);
+                          }
+                         }} 
+                         disabled={!wolfSeerTargetId} 
+                         className="w-full mt-3 p-3 rounded-xl bg-red-900/50 hover:bg-red-800/60 font-bold text-white disabled:opacity-50 transition-colors"
+                       >
+                         Inspect Role
+                       </button>
+                     </div>
+                  )}
+
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                     <h3 className="text-red-400 font-bold mb-1">🐺 Kill Target</h3>
+                     <p className="text-xs text-gray-400 mb-3">Select the pack's primary victim.</p>
+                     <PlayerSelector 
+                       players={players}
+                       selectedId={selectedTarget}
+                       onSelect={setSelectedTarget}
+                       excludeIds={players.filter(p=>["Werewolf","AlphaWerewolf","WolfSeer","Minion"].includes(p.role!)).map(p=>p.id)}
+                     />
+                  </div>
                 </div>
               )}
 
-              {/* ── SERIAL KILLER ── */}
               {currentRole === "SerialKiller" && (
                 <PlayerSelector
                   players={players}
@@ -551,7 +486,6 @@ export default function NightPhaseScreen() {
                 />
               )}
 
-              {/* ── DOCTOR ── */}
               {currentRole === "Doctor" && (
                 <PlayerSelector
                   players={players}
@@ -561,7 +495,6 @@ export default function NightPhaseScreen() {
                 />
               )}
 
-              {/* ── BODYGUARD ── */}
               {currentRole === "Bodyguard" && (
                 <PlayerSelector
                   players={players}
@@ -576,7 +509,6 @@ export default function NightPhaseScreen() {
         </AnimatePresence>
       </div>
 
-      {/* ── Sticky footer — two buttons ── */}
       <div
         className="relative z-10 flex-shrink-0"
         style={{
@@ -586,7 +518,6 @@ export default function NightPhaseScreen() {
         }}
       >
         <div className="flex" style={{ gap: 12 }}>
-          {/* Skip — secondary */}
           <motion.button
             onClick={advanceStep}
             className="flex items-center justify-center gap-2 rounded-2xl font-semibold text-sm flex-shrink-0"
@@ -603,20 +534,19 @@ export default function NightPhaseScreen() {
             Skip
           </motion.button>
 
-          {/* Next / End — primary */}
           <motion.button
             onClick={handleConfirmStep}
-            disabled={!canConfirm && currentRole !== "Witch"}
+            disabled={!canConfirm}
             className="flex-1 flex items-center justify-center gap-2 rounded-2xl font-bold text-base"
             style={{
               padding: "16px 20px",
               background:
-                canConfirm || currentRole === "Witch"
+                canConfirm
                   ? `linear-gradient(135deg, ${roleDef?.color ?? "#4b5563"}, ${roleDef?.color ?? "#374151"}99)`
                   : "rgba(255,255,255,0.07)",
-              color: canConfirm || currentRole === "Witch" ? "white" : "#4b5563",
+              color: canConfirm ? "white" : "#4b5563",
               border:
-                canConfirm || currentRole === "Witch"
+                canConfirm
                   ? `1px solid ${roleDef?.color ?? "#4b5563"}40`
                   : "1px solid transparent",
             }}
@@ -627,6 +557,34 @@ export default function NightPhaseScreen() {
           </motion.button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showWolfSeerModal && wolfSeerResult && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-[#111118] border border-white/10 p-8 rounded-[32px] w-full max-w-[340px] text-center shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-red-600/20 blur-[50px] rounded-full pointer-events-none" />
+              
+              <div className="text-6xl mb-4 relative z-10">{ROLE_DEFINITIONS[wolfSeerResult.role].icon}</div>
+              <h2 className="text-2xl font-bold text-white mb-1 relative z-10">{wolfSeerResult.name}</h2>
+              <p className="text-gray-400 text-sm mb-8 relative z-10">
+                is a <span className="text-white font-bold px-2 py-0.5 bg-white/10 rounded">{ROLE_DEFINITIONS[wolfSeerResult.role].displayName}</span>
+              </p>
+              
+              <button 
+                onClick={() => setShowWolfSeerModal(false)} 
+                className="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 font-bold text-white transition-colors relative z-10"
+              >
+                Close Inspect
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
