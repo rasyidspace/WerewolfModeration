@@ -18,10 +18,14 @@ export function resolveNight(
     bodyguardSavedId: null,
     loversTriggered: false,
     loversDeadId: null,
+    conversions: [],
   };
 
   // --- Collect action sets ---
-  const werewolfKill = actions.find((a) => a.role === "Werewolf")?.targetId ?? null;
+  const wwTeamAction = actions.find((a) => a.role === "WerewolfTeam");
+  let werewolfKill = wwTeamAction?.targetId ?? null;
+  const alphaConvert = wwTeamAction?.alphaConvertId ?? null;
+
   const serialKillerId = actions.find((a) => a.role === "SerialKiller")?.actorId ?? null;
   const serialKill = actions.find((a) => a.role === "SerialKiller")?.targetId ?? null;
   const doctorSave = actions.find((a) => a.role === "Doctor")?.targetId ?? null;
@@ -46,6 +50,15 @@ export function resolveNight(
         targetName: target.name,
         isEvil: target.role === "Werewolf" || target.role === "SerialKiller",
       });
+    }
+  }
+
+  // --- Resolve Alpha Conversion ---
+  if (alphaConvert) {
+    const target = players.find((p) => p.id === alphaConvert && p.isAlive);
+    if (target) {
+      result.conversions.push({ id: target.id, newRole: "Werewolf" });
+      werewolfKill = null; // Conversion overrides kill
     }
   }
 
@@ -140,6 +153,8 @@ export function resolveNight(
   return result;
 }
 
+import { ROLE_DEFINITIONS } from "./roles";
+
 // ============================================================
 // WIN CONDITION CHECK
 // ============================================================
@@ -169,19 +184,22 @@ export function checkWinCondition(
     return "SerialKiller";
   }
 
-  // All werewolves dead
-  const wolvesAlive = alive.filter((p) => p.role === "Werewolf");
-  if (wolvesAlive.length === 0) {
+  // All killing werewolves dead
+  const killingWolvesAlive = alive.filter(
+    (p) => p.role && ["Werewolf", "AlphaWerewolf", "WolfSeer"].includes(p.role)
+  );
+  if (killingWolvesAlive.length === 0) {
     // Check if SK is still alive — SK wins over village if last standing
     if (skAlive) return null; // game continues
     return "Village";
   }
 
-  // Werewolves >= remaining non-wolf players
-  const nonWolves = alive.filter(
-    (p) => p.role !== "Werewolf"
-  );
-  if (wolvesAlive.length >= nonWolves.length) {
+  // Werewolf team >= remaining non-wolf players
+  const wolfTeamPower = alive.filter(
+    (p) => p.role && ROLE_DEFINITIONS[p.role].team === "Werewolf"
+  ).length;
+  const nonWolfPower = alive.length - wolfTeamPower;
+  if (wolfTeamPower >= nonWolfPower) {
     return "Werewolf";
   }
 

@@ -3,7 +3,8 @@
 import { motion } from "framer-motion";
 import { useGameStore } from "@/lib/gameStore";
 import { ROLE_DEFINITIONS, ALL_ROLES, type RoleName } from "@/lib/roles";
-import { Plus, Minus, AlertCircle, ChevronRight, Users } from "lucide-react";
+import { useState } from "react";
+import { Plus, Minus, AlertCircle, ChevronRight, Users, Settings2 } from "lucide-react";
 
 const TEAM_COLORS: Record<string, string> = {
   Village: "#10b981",
@@ -12,7 +13,8 @@ const TEAM_COLORS: Record<string, string> = {
 };
 
 export default function SetupScreen() {
-  const { roleConfigs, setRoleConfig, players, setPhase } = useGameStore();
+  const { roleConfigs, setRoleConfig, players, setPhase, settings, updateSetting } = useGameStore();
+  const [showSettings, setShowSettings] = useState(false);
 
   const totalAssigned = roleConfigs.reduce(
     (sum, rc) => sum + (rc.enabled ? rc.count : 0),
@@ -198,6 +200,71 @@ export default function SetupScreen() {
             );
           })}
         </div>
+
+        {/* Advanced Settings Toggle */}
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="flex items-center gap-2 mt-6 mb-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+        >
+          <Settings2 size={16} />
+          Advanced Game Settings
+        </button>
+
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="flex flex-col gap-4 mb-6 p-4 rounded-2xl overflow-hidden" 
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Day Phase: Tie Breaker</label>
+              <select 
+                value={settings.tieBreaker}
+                onChange={(e) => updateSetting("tieBreaker", e.target.value as any)}
+                className="bg-black/50 text-white text-sm rounded-lg p-2.5 border border-white/10 outline-none"
+              >
+                <option value="no-elimination">No Elimination</option>
+                <option value="random">Random Target</option>
+                <option value="revote">Moderator Decides</option>
+              </select>
+            </div>
+
+            <div className="w-full h-px bg-white/5" />
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-red-400 font-semibold uppercase tracking-wider">Werewolf Team: Tie Breaker</label>
+              <select 
+                value={settings.werewolfTieBreaker}
+                onChange={(e) => updateSetting("werewolfTieBreaker", e.target.value as any)}
+                className="bg-black/50 text-white text-sm rounded-lg p-2.5 border border-white/10 outline-none"
+              >
+                <option value="alpha">Alpha Decides</option>
+                <option value="random">Random Target</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-300 font-medium">Alpha Override Vote</label>
+              <button
+                 onClick={() => updateSetting("alphaOverrideVote", !settings.alphaOverrideVote)}
+                 className="relative rounded-full w-11 h-6 transition-colors"
+                 style={{ background: settings.alphaOverrideVote ? "#dc2626" : "rgba(255,255,255,0.1)" }}
+              >
+                 <div className="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: settings.alphaOverrideVote ? "calc(100% - 20px)" : "4px" }} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-300 font-medium">Alpha Convert Limit</label>
+              <div className="flex items-center gap-3">
+                <button onClick={() => updateSetting("alphaConvertLimit", Math.max(0, settings.alphaConvertLimit - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"><Minus size={14}/></button>
+                <span className="text-white text-base font-bold w-4 text-center">{settings.alphaConvertLimit}</span>
+                <button onClick={() => updateSetting("alphaConvertLimit", settings.alphaConvertLimit + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"><Plus size={14}/></button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <div className="h-4" />
       </div>

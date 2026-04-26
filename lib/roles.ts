@@ -12,9 +12,14 @@ export type RoleName =
   | "Bodyguard"
   | "Cupid"
   | "SerialKiller"
-  | "Jester";
+  | "Jester"
+  | "AlphaWerewolf"
+  | "WolfSeer"
+  | "Minion";
 
 export type Team = "Village" | "Werewolf" | "Neutral";
+
+export type NightStepName = RoleName | "WerewolfTeam";
 
 export interface RoleDefinition {
   name: RoleName;
@@ -56,6 +61,42 @@ export const ROLE_DEFINITIONS: Record<RoleName, RoleDefinition> = {
     nightInstruction:
       "All Werewolves, open your eyes. Silently agree on one target to eliminate tonight.",
     hasNightAction: true,
+  },
+  AlphaWerewolf: {
+    name: "AlphaWerewolf",
+    displayName: "Alpha Werewolf",
+    team: "Werewolf",
+    description: "The leader of the pack. You can override the team's kill vote, or choose to infect and convert a player into a werewolf.",
+    nightOrder: 3,
+    icon: "🐺👑",
+    color: "#b91c1c",
+    glowClass: "glow-red",
+    nightInstruction: "Alpha, make your final decision for the pack.",
+    hasNightAction: true,
+  },
+  WolfSeer: {
+    name: "WolfSeer",
+    displayName: "Wolf Seer",
+    team: "Werewolf",
+    description: "A corrupted visionary. Each night you can inspect one player to reveal their exact role to aid the werewolf pack.",
+    nightOrder: 3,
+    icon: "👁️🐺",
+    color: "#991b1b",
+    glowClass: "glow-red",
+    nightInstruction: "Wolf Seer, point to a player to learn their exact role.",
+    hasNightAction: true,
+  },
+  Minion: {
+    name: "Minion",
+    displayName: "Minion",
+    team: "Werewolf",
+    description: "A loyal servant to the werewolves. You know who the werewolves are, but you do not wake up with them. Help them win during the day.",
+    nightOrder: 0,
+    icon: "🧎",
+    color: "#f87171",
+    glowClass: "",
+    nightInstruction: "",
+    hasNightAction: false,
   },
   Seer: {
     name: "Seer",
@@ -179,13 +220,30 @@ export const ALL_ROLES: RoleName[] = [
   "Cupid",
   "SerialKiller",
   "Jester",
+  "AlphaWerewolf",
+  "WolfSeer",
+  "Minion",
 ];
 
 // Roles that act during night phase, sorted by nightOrder
-export function getNightRoles(enabledRoles: RoleName[]): RoleName[] {
-  return enabledRoles
+export function getNightRoles(enabledRoles: RoleName[]): NightStepName[] {
+  const steps: NightStepName[] = [];
+  let wwTeamAdded = false;
+
+  const sortedRoles = enabledRoles
     .filter((r) => ROLE_DEFINITIONS[r].hasNightAction)
-    .sort(
-      (a, b) => ROLE_DEFINITIONS[a].nightOrder - ROLE_DEFINITIONS[b].nightOrder
-    );
+    .sort((a, b) => ROLE_DEFINITIONS[a].nightOrder - ROLE_DEFINITIONS[b].nightOrder);
+
+  for (const role of sortedRoles) {
+    if (ROLE_DEFINITIONS[role].team === "Werewolf") {
+      if (!wwTeamAdded) {
+        steps.push("WerewolfTeam");
+        wwTeamAdded = true;
+      }
+    } else {
+      steps.push(role);
+    }
+  }
+
+  return steps;
 }

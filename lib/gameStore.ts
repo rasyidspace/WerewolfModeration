@@ -34,9 +34,11 @@ export interface RoleConfig {
 }
 
 export interface NightAction {
-  role: "Werewolf" | "Seer" | "Doctor" | "Bodyguard" | "WitchHeal" | "WitchPoison" | "SerialKiller" | "Cupid";
+  role: "WerewolfTeam" | "Seer" | "Doctor" | "Bodyguard" | "WitchHeal" | "WitchPoison" | "SerialKiller" | "Cupid";
   actorId: string | null;
   targetId: string | null;
+  werewolfVotes?: Record<string, string>;
+  alphaConvertId?: string | null;
 }
 
 export interface SeerResult {
@@ -53,6 +55,7 @@ export interface NightResult {
   bodyguardSavedId: string | null;
   loversTriggered: boolean;
   loversDeadId: string | null;
+  conversions: { id: string; newRole: RoleName }[];
 }
 
 export interface GameLog {
@@ -66,6 +69,11 @@ export interface GameSettings {
   tieBreaker: "no-elimination" | "random" | "revote";
   soundEnabled: boolean;
   allowDoctorSelfSave: boolean;
+  alphaOverrideVote: boolean;
+  alphaConvertLimit: number;
+  rolesImmuneToConvert: RoleName[];
+  werewolfTieBreaker: "random" | "alpha";
+  minionVisibility: "knows_wolves" | "mutual";
 }
 
 // ============================================================
@@ -90,6 +98,7 @@ interface GameStore {
   jesterId: string | null;
   winCondition: "Village" | "Werewolf" | "SerialKiller" | "Jester" | null;
   eliminatedPlayerId: string | null; // last player eliminated by vote
+  alphaConvertsRemaining: number;
 
   // Actions
   setPhase: (phase: GamePhase) => void;
@@ -114,6 +123,7 @@ interface GameStore {
   updateSetting: <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => void;
   resetGame: () => void;
   nextRound: () => void;
+  setAlphaConvertsRemaining: (val: number) => void;
 }
 
 const DEFAULT_ROLE_CONFIGS: RoleConfig[] = ALL_ROLES.map((role) => ({
@@ -126,6 +136,11 @@ const DEFAULT_SETTINGS: GameSettings = {
   tieBreaker: "no-elimination",
   soundEnabled: true,
   allowDoctorSelfSave: true,
+  alphaOverrideVote: true,
+  alphaConvertLimit: 1,
+  rolesImmuneToConvert: ["Seer", "Witch", "AlphaWerewolf"],
+  werewolfTieBreaker: "alpha",
+  minionVisibility: "knows_wolves",
 };
 
 const INITIAL_STATE = {
@@ -146,6 +161,7 @@ const INITIAL_STATE = {
   jesterId: null,
   winCondition: null,
   eliminatedPlayerId: null,
+  alphaConvertsRemaining: 1, // Will be overridden by settings during reset
 };
 
 function generateId(): string {
@@ -264,13 +280,16 @@ export const useGameStore = create<GameStore>()(
       applyNightResult: (result) => {
         set((state) => {
           let players = state.players.map((p) => {
+            const conversion = result.conversions.find((c) => c.id === p.id);
+            const basePlayer = conversion ? { ...p, role: conversion.newRole } : p;
+
             if (result.dead.includes(p.id)) {
-              return { ...p, isAlive: false, status: "dead" as const };
+              return { ...basePlayer, isAlive: false, status: "dead" as const };
             }
             if (result.saved.includes(p.id)) {
-              return { ...p, status: "saved" as const };
+              return { ...basePlayer, status: "saved" as const };
             }
-            return { ...p, status: "alive" as const };
+            return { ...basePlayer, status: "alive" as const };
           });
 
           // Check if hunter died
@@ -387,12 +406,15 @@ export const useGameStore = create<GameStore>()(
           settings: { ...state.settings, [key]: value },
         })),
 
-      resetGame: () =>
+      resetGame: () => {
+        const settings = get().settings;
         set({
           ...INITIAL_STATE,
           roleConfigs: DEFAULT_ROLE_CONFIGS,
-          settings: get().settings,
-        }),
+          settings,
+          alphaConvertsRemaining: settings.alphaConvertLimit,
+        });
+      },
 
       nextRound: () =>
         set((state) => ({
@@ -405,6 +427,8 @@ export const useGameStore = create<GameStore>()(
           jesterEliminatedByVote: false,
           players: state.players.map((p) => ({ ...p, status: p.isAlive ? "alive" : "dead", votes: 0 })),
         })),
+
+      setAlphaConvertsRemaining: (val) => set({ alphaConvertsRemaining: val }),
     }),
     {
       name: "werewolf-game-state",
@@ -425,6 +449,7 @@ export const useGameStore = create<GameStore>()(
         winCondition: state.winCondition,
         hunterActive: state.hunterActive,
         hunterId: state.hunterId,
+        alphaConvertsRemaining: state.alphaConvertsRemaining,
       }),
     }
   )
