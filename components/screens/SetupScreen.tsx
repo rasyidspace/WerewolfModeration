@@ -36,7 +36,7 @@ export default function SetupScreen() {
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden">
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-8 pt-8 pb-8">
 
         {/* Page heading */}
         <motion.div
@@ -215,7 +215,7 @@ export default function SetupScreen() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             className="flex flex-col gap-5 mb-8 p-6 rounded-2xl overflow-hidden" 
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+            style={{ background: "rgba(22,22,31,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Day Phase: Tie Breaker</label>
@@ -271,7 +271,7 @@ export default function SetupScreen() {
 
       {/* ── Sticky CTA ── */}
       <div
-        className="flex-shrink-0 px-6 py-5"
+        className="flex-shrink-0 px-8 py-6"
         style={{
           borderTop: "1px solid rgba(255,255,255,0.07)",
           background: "rgba(10,10,15,0.96)",
