@@ -110,7 +110,7 @@ export default function SetupScreen() {
                 animate={{ opacity: 1, scale: 1 }}
                 whileTap={{ scale: 0.96 }}
                 transition={{ delay: i * 0.03, duration: 0.2 }}
-                className="rounded-[20px] p-4 flex flex-col relative overflow-hidden cursor-pointer aspect-square"
+                className="rounded-[20px] p-4 flex flex-col items-center justify-between relative overflow-hidden cursor-pointer aspect-square"
                 style={{
                   background: isEnabled
                     ? `linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))`
@@ -124,7 +124,7 @@ export default function SetupScreen() {
                 }}
               >
                 {/* Top: Icon + Name */}
-                <div className="flex flex-col items-center justify-center gap-2 mt-1">
+                <div className="flex flex-col items-center gap-2">
                    <div className="text-[40px] leading-none filter drop-shadow-md">{def.icon}</div>
                    <h3 className="font-bold text-sm text-center text-white leading-tight">
                      {def.displayName}
@@ -132,20 +132,18 @@ export default function SetupScreen() {
                 </div>
 
                 {/* Middle: Badge */}
-                <div className="flex justify-center mt-2 mb-auto">
-                   <span
-                     className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                     style={{
-                       background: `${TEAM_COLORS[def.team]}20`,
-                       color: TEAM_COLORS[def.team],
-                     }}
-                   >
-                     {def.team}
-                   </span>
-                </div>
+                <span
+                  className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                  style={{
+                    background: `${TEAM_COLORS[def.team]}20`,
+                    color: TEAM_COLORS[def.team],
+                  }}
+                >
+                  {def.team}
+                </span>
 
                 {/* Bottom: Controls */}
-                <div className="flex items-center justify-between w-full mt-2">
+                <div className="flex items-center justify-between w-full">
                    {isEnabled ? (
                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                        <motion.button
@@ -167,7 +165,7 @@ export default function SetupScreen() {
                        </motion.button>
                      </div>
                    ) : (
-                     <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Disabled</span>
+                     <span className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider">Disabled</span>
                    )}
 
                    {/* Toggle */}
