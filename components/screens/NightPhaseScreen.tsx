@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "@/lib/gameStore";
 import { ROLE_DEFINITIONS, getNightRoles, type RoleName, type NightStepName } from "@/lib/roles";
 import PlayerSelector from "@/components/PlayerSelector";
+import FullscreenModal from "@/components/FullscreenModal";
 import { useState, useEffect } from "react";
 import { ChevronRight, SkipForward, Moon, Plus, Minus } from "lucide-react";
 import type { NightAction } from "@/lib/gameStore";
@@ -438,8 +439,14 @@ export default function NightPhaseScreen() {
                   )}
 
                   {players.some(p => p.role === "WolfSeer" && p.isAlive) && (
-                     <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                       <h3 className="text-red-400 font-bold mb-2">👁️ Wolf Seer</h3>
+                     <div
+                       className="flex flex-col gap-3 p-4 rounded-2xl"
+                       style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.15)" }}
+                     >
+                       <div className="flex items-center gap-2">
+                         <span className="text-base">👁️</span>
+                         <h3 className="text-sm font-bold" style={{ color: "#f87171" }}>Wolf Seer</h3>
+                       </div>
                        <PlayerSelector 
                          players={players} 
                          selectedId={wolfSeerTargetId} 
@@ -447,7 +454,7 @@ export default function NightPhaseScreen() {
                          excludeIds={players.filter(p=>p.role==="WolfSeer").map(p=>p.id)} 
                          label="Select target to inspect"
                        />
-                       <button 
+                       <motion.button 
                          onClick={() => {
                           const target = players.find(p=>p.id===wolfSeerTargetId);
                           if(target && target.role) {
@@ -456,10 +463,19 @@ export default function NightPhaseScreen() {
                           }
                          }} 
                          disabled={!wolfSeerTargetId} 
-                         className="w-full mt-3 p-3 rounded-xl bg-red-900/50 hover:bg-red-800/60 font-bold text-white disabled:opacity-50 transition-colors"
+                         className="w-full rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
+                         style={{
+                           padding: "14px 20px",
+                           background: wolfSeerTargetId
+                             ? "linear-gradient(135deg, #dc2626, #991b1b)"
+                             : "rgba(255,255,255,0.07)",
+                           color:  wolfSeerTargetId ? "white" : "#4b5563",
+                           border: wolfSeerTargetId ? "1px solid rgba(220,38,38,0.35)" : "1px solid transparent",
+                         }}
+                         whileTap={{ scale: 0.97 }}
                        >
-                         Inspect Role
-                       </button>
+                         <span>👁️</span> Inspect Role
+                       </motion.button>
                      </div>
                   )}
 
@@ -558,33 +574,110 @@ export default function NightPhaseScreen() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showWolfSeerModal && wolfSeerResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
-              animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-[#111118] border border-white/10 p-8 rounded-[32px] w-full max-w-[340px] text-center shadow-2xl relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-red-600/20 blur-[50px] rounded-full pointer-events-none" />
-              
-              <div className="text-6xl mb-4 relative z-10">{ROLE_DEFINITIONS[wolfSeerResult.role].icon}</div>
-              <h2 className="text-2xl font-bold text-white mb-1 relative z-10">{wolfSeerResult.name}</h2>
-              <p className="text-gray-400 text-sm mb-8 relative z-10">
-                is a <span className="text-white font-bold px-2 py-0.5 bg-white/10 rounded">{ROLE_DEFINITIONS[wolfSeerResult.role].displayName}</span>
-              </p>
-              
-              <button 
-                onClick={() => setShowWolfSeerModal(false)} 
-                className="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 font-bold text-white transition-colors relative z-10"
+      {/* Wolf Seer Inspect Result — centered modal, styled like role reveal */}
+      <FullscreenModal
+        isOpen={showWolfSeerModal}
+        onClose={() => setShowWolfSeerModal(false)}
+        showClose={false}
+      >
+        {wolfSeerResult && (() => {
+          const roleDef = ROLE_DEFINITIONS[wolfSeerResult.role];
+          const teamColors: Record<string, string> = {
+            Village: "#10b981",
+            Werewolf: "#dc2626",
+            Neutral: "#f59e0b",
+          };
+          const teamColor = teamColors[roleDef.team] ?? "#6b7280";
+          return (
+            <div className="flex flex-col items-center text-center gap-6 px-6 py-10">
+
+              {/* Glowing icon orb */}
+              <motion.div
+                className="relative"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
-                Close Inspect
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <div
+                  className="w-32 h-32 rounded-full flex items-center justify-center"
+                  style={{
+                    fontSize: "64px",
+                    background: `radial-gradient(circle, ${roleDef.color}30, transparent)`,
+                    boxShadow: `0 0 56px ${roleDef.color}55, 0 0 112px ${roleDef.color}20`,
+                    border: `2px solid ${roleDef.color}45`,
+                  }}
+                >
+                  {roleDef.icon}
+                </div>
+                {/* Spinning ring */}
+                <div
+                  className="absolute inset-0 rounded-full animate-spin-slow"
+                  style={{ border: `1px solid ${roleDef.color}30`, transform: "scale(1.3)" }}
+                />
+              </motion.div>
+
+              {/* Player name label */}
+              <motion.p
+                className="text-sm font-semibold tracking-widest uppercase"
+                style={{ color: "#6b7280" }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {wolfSeerResult.name}
+              </motion.p>
+
+              {/* Role name + team badge */}
+              <motion.div
+                className="flex flex-col items-center gap-3"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <h2
+                  className="text-4xl font-bold"
+                  style={{
+                    fontFamily: "var(--font-cinzel)",
+                    color: roleDef.color,
+                    textShadow: `0 0 32px ${roleDef.color}60`,
+                  }}
+                >
+                  {roleDef.displayName}
+                </h2>
+                <span
+                  className="text-sm font-semibold px-4 py-1.5 rounded-full"
+                  style={{
+                    background: `${teamColor}18`,
+                    color: teamColor,
+                    border: `1px solid ${teamColor}38`,
+                  }}
+                >
+                  {roleDef.team} Team
+                </span>
+              </motion.div>
+
+              {/* Close CTA */}
+              <motion.button
+                onClick={() => setShowWolfSeerModal(false)}
+                className="w-full font-bold text-base text-white rounded-2xl"
+                style={{
+                  padding: "18px 24px",
+                  background: `linear-gradient(135deg, ${roleDef.color}, ${roleDef.color}99)`,
+                  boxShadow: `0 6px 24px ${roleDef.color}40`,
+                  border: `1px solid ${roleDef.color}55`,
+                }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.01 }}
+              >
+                Got it ✓
+              </motion.button>
+            </div>
+          );
+        })()}
+      </FullscreenModal>
     </div>
   );
 }

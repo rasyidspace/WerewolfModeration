@@ -4,340 +4,459 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "@/lib/gameStore";
 import { ROLE_DEFINITIONS, ALL_ROLES, type RoleName } from "@/lib/roles";
 import { useState } from "react";
-import { Plus, Minus, AlertCircle, ChevronRight, Users, Settings2 } from "lucide-react";
+import FullscreenModal from "@/components/FullscreenModal";
+import {
+  Plus, Minus, AlertCircle, ChevronRight, Users,
+  Settings2, ChevronDown, Shuffle, Crown, Shield, Info,
+} from "lucide-react";
 
 const TEAM_COLORS: Record<string, string> = {
-  Village: "#10b981",
+  Village:  "#10b981",
   Werewolf: "#dc2626",
-  Neutral: "#f59e0b",
+  Neutral:  "#f59e0b",
+};
+
+const TEAM_ORDER: Array<"Village" | "Werewolf" | "Neutral"> = ["Village", "Werewolf", "Neutral"];
+
+const TEAM_LABELS: Record<string, string> = {
+  Village:  "Villagers",
+  Werewolf: "Werewolf Pack",
+  Neutral:  "Neutral",
 };
 
 export default function SetupScreen() {
-  const { roleConfigs, setRoleConfig, players, setPhase, settings, updateSetting } = useGameStore();
+  const { roleConfigs, setRoleConfig, players, setPhase, settings, updateSetting } =
+    useGameStore();
   const [showSettings, setShowSettings] = useState(false);
   const [popupRole, setPopupRole] = useState<RoleName | null>(null);
+  const [flashingRole, setFlashingRole] = useState<RoleName | null>(null);
 
-  const totalAssigned = roleConfigs.reduce(
-    (sum, rc) => sum + (rc.enabled ? rc.count : 0),
-    0
-  );
-  const totalPlayers = players.length;
-  const mismatch = totalPlayers > 0 && totalAssigned !== totalPlayers;
-  const canProceed = totalAssigned > 0;
+  const totalAssigned = roleConfigs.reduce((s, rc) => s + (rc.enabled ? rc.count : 0), 0);
+  const totalPlayers  = players.length;
+  const mismatch      = totalPlayers > 0 && totalAssigned !== totalPlayers;
+  const canProceed    = totalAssigned > 0;
 
   const handleToggle = (role: RoleName) => {
     const rc = roleConfigs.find((r) => r.role === role)!;
     setRoleConfig(role, rc.count, !rc.enabled);
+    // Trigger border flash
+    setFlashingRole(role);
+    setTimeout(() => setFlashingRole(null), 500);
   };
   const handleCount = (role: RoleName, delta: number) => {
     const rc = roleConfigs.find((r) => r.role === role)!;
     setRoleConfig(role, Math.max(1, rc.count + delta), rc.enabled);
   };
 
+  const grouped = TEAM_ORDER.map((team) => ({
+    team,
+    roles: ALL_ROLES.filter((r) => ROLE_DEFINITIONS[r].team === team),
+  }));
+
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-8">
 
-        {/* Page heading */}
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 overflow-y-auto px-4 pt-5 pb-6">
+
+        {/* Heading */}
         <motion.div
-          initial={{ opacity: 0, y: -12 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.35 }}
           className="mb-4"
         >
-          <h1
-            className="text-xl font-bold text-white mb-1"
-            style={{ fontFamily: "var(--font-cinzel)" }}
-          >
+          <h1 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-cinzel)" }}>
             Role Setup
           </h1>
-          <p className="text-sm text-gray-500">Toggle and configure roles for this game</p>
+          <p className="text-xs text-gray-500 mt-0.5">Select and configure roles for this session</p>
         </motion.div>
 
-        {/* Status strip */}
+        {/* Status pill */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center rounded-2xl mb-5"
+          transition={{ delay: 0.08 }}
+          className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 mb-5"
           style={{
-            gap: 14,
-            padding: "14px 16px",
-            background: mismatch ? "rgba(220,38,38,0.08)" : "rgba(255,255,255,0.04)",
-            border: mismatch ? "1px solid rgba(220,38,38,0.25)" : "1px solid rgba(255,255,255,0.07)",
+            background: mismatch ? "rgba(220,38,38,0.09)" : "rgba(255,255,255,0.04)",
+            border:     mismatch ? "1px solid rgba(220,38,38,0.28)" : "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          {mismatch ? (
-            <AlertCircle size={16} style={{ color: "#f87171", flexShrink: 0 }} />
-          ) : (
-            <Users size={16} style={{ color: "#6b7280", flexShrink: 0 }} />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: mismatch ? "#f87171" : "#e5e7eb" }}>
-              {totalAssigned} roles assigned
-              {totalPlayers > 0 && ` · ${totalPlayers} players`}
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: mismatch ? "#f87171" : "#6b7280" }}>
-              {mismatch
-                ? `Need ${totalPlayers}, have ${totalAssigned} — adjust counts`
-                : totalPlayers > 0
-                  ? "✓ Roles match player count"
-                  : "Configure player count in the next step"}
-            </p>
-          </div>
+          {mismatch
+            ? <AlertCircle size={14} className="shrink-0" style={{ color: "#f87171" }} />
+            : <Users       size={14} className="shrink-0" style={{ color: "#6b7280" }} />
+          }
+          <p className="flex-1 text-xs font-medium" style={{ color: mismatch ? "#f87171" : "#9ca3af" }}>
+            {mismatch
+              ? `${totalAssigned} assigned · need ${totalPlayers} — adjust counts`
+              : totalPlayers > 0
+                ? `${totalAssigned} roles assigned · ✓ matches ${totalPlayers} players`
+                : `${totalAssigned} roles assigned`
+            }
+          </p>
           {mismatch && (
             <span
-              className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0"
-              style={{ background: "rgba(220,38,38,0.18)", color: "#f87171" }}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{ background: "rgba(220,38,38,0.2)", color: "#f87171" }}
             >
-              {totalAssigned > totalPlayers
-                ? `+${totalAssigned - totalPlayers}`
-                : `-${totalPlayers - totalAssigned}`}
+              {totalAssigned > totalPlayers ? `+${totalAssigned - totalPlayers}` : `-${totalPlayers - totalAssigned}`}
             </span>
           )}
         </motion.div>
 
-        {/* Role list grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {ALL_ROLES.map((roleName, i) => {
-            const def = ROLE_DEFINITIONS[roleName];
-            const config = roleConfigs.find((r) => r.role === roleName)!;
-            const isEnabled = config.enabled;
-            const teamColor = TEAM_COLORS[def.team];
-
+        {/* Role groups — 2-column card grid per team */}
+        <div className="flex flex-col gap-6">
+          {grouped.map(({ team, roles }) => {
+            const teamColor = TEAM_COLORS[team];
             return (
               <motion.div
-                key={roleName}
-                onClick={() => setPopupRole(roleName)}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ delay: i * 0.03, duration: 0.2 }}
-                className="rounded-[18px] flex flex-col relative overflow-hidden cursor-pointer"
-                style={{
-                  background: isEnabled
-                    ? "rgba(255,255,255,0.04)"
-                    : "rgba(14,14,20,0.55)",
-                  border: isEnabled
-                    ? `1px solid ${def.color}35`
-                    : "1px solid rgba(255,255,255,0.06)",
-                  opacity: isEnabled ? 1 : 0.58,
-                  filter: isEnabled ? "none" : "grayscale(40%)",
-                  minHeight: 164,
-                  transition: "opacity 0.25s, border-color 0.25s",
-                }}
+                key={team}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                {/* Top accent bar — glows team color when enabled */}
-                <div
-                  style={{
-                    height: 3,
-                    background: def.color,
-                    opacity: isEnabled ? 0.85 : 0,
-                    transition: "opacity 0.3s",
-                    flexShrink: 0,
-                  }}
-                />
-
-                {/* Icon + Name + Badge — vertically centered in the card body */}
-                <div className="flex flex-col items-center justify-center flex-1 px-3 pt-3 pb-2 gap-1.5">
-                  <div className="text-[40px] leading-none">{def.icon}</div>
-                  <h3 className="font-bold text-[13px] text-center text-white leading-tight mt-0.5">
-                    {def.displayName}
-                  </h3>
+                {/* Section label */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: teamColor }} />
                   <span
-                    className="text-[9px] font-bold px-2 py-[2px] rounded-full uppercase tracking-wider"
-                    style={{
-                      background: `${teamColor}1A`,
-                      color: teamColor,
-                      border: `1px solid ${teamColor}30`,
-                    }}
+                    className="text-[10px] font-bold uppercase tracking-widest shrink-0"
+                    style={{ color: teamColor }}
                   >
-                    {def.team}
+                    {TEAM_LABELS[team]}
                   </span>
+                  <div className="flex-1 h-px" style={{ background: `${teamColor}22` }} />
                 </div>
 
-                {/* Controls row — anchored to card bottom */}
-                <div
-                  className="flex items-center justify-between px-3 py-2.5"
-                  style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Count or "off" label */}
-                  {isEnabled ? (
-                    <div className="flex items-center gap-1.5">
-                      <motion.button
-                        whileTap={{ scale: 0.80 }}
-                        onClick={() => handleCount(roleName, -1)}
-                        className="w-6 h-6 rounded-md flex items-center justify-center"
-                        style={{ background: "rgba(255,255,255,0.08)" }}
-                      >
-                        <Minus size={11} className="text-gray-400" />
-                      </motion.button>
-                      <span
-                        className="w-5 text-center text-sm font-bold"
-                        style={{ color: def.color }}
-                      >
-                        {config.count}
-                      </span>
-                      <motion.button
-                        whileTap={{ scale: 0.80 }}
-                        onClick={() => handleCount(roleName, 1)}
-                        className="w-6 h-6 rounded-md flex items-center justify-center"
-                        style={{ background: "rgba(255,255,255,0.08)" }}
-                      >
-                        <Plus size={11} className="text-gray-400" />
-                      </motion.button>
-                    </div>
-                  ) : (
-                    <span
-                      className="text-[9px] font-semibold uppercase tracking-wider"
-                      style={{ color: "rgba(255,255,255,0.22)" }}
-                    >
-                      Off
-                    </span>
-                  )}
+                {/* 2-col card grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {roles.map((roleName, idx) => {
+                    const def       = ROLE_DEFINITIONS[roleName];
+                    const config    = roleConfigs.find((r) => r.role === roleName)!;
+                    const isEnabled = config.enabled;
 
-                  {/* Toggle switch */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleToggle(roleName); }}
-                    className="relative rounded-full flex-shrink-0"
-                    style={{
-                      width: 34,
-                      height: 18,
-                      background: isEnabled ? def.color : "rgba(255,255,255,0.1)",
-                      transition: "background 0.25s",
-                    }}
-                  >
-                    <div
-                      className="absolute top-[2px] bg-white rounded-full shadow"
-                      style={{
-                        width: 14,
-                        height: 14,
-                        left: isEnabled ? "calc(100% - 16px)" : "2px",
-                        transition: "left 0.25s",
-                      }}
-                    />
-                  </button>
+                    return (
+                      <motion.div
+                        key={roleName}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.04, duration: 0.2 }}
+                        className="flex flex-col rounded-2xl cursor-pointer select-none"
+                        onClick={() => handleToggle(roleName)}
+                        style={{
+                          background:  isEnabled ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.018)",
+                          border:      flashingRole === roleName
+                            ? `2px solid ${def.color}`
+                            : isEnabled
+                              ? `1px solid ${def.color}28`
+                              : "1px solid rgba(255,255,255,0.07)",
+                          transition:  flashingRole === roleName
+                            ? "border-color 0.05s, border-width 0.05s, background 0.2s"
+                            : "border-color 0.3s, border-width 0.3s, background 0.2s",
+                          padding:     flashingRole === roleName ? "11px" : "12px", // compensate border-width
+                          gap:         "12px",
+                          boxShadow:   flashingRole === roleName
+                            ? `0 0 0 3px ${def.color}25, 0 0 20px ${def.color}20`
+                            : "none",
+                        }}
+                      >
+                        {/* Row 1 — badge left, info button right */}
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="text-[9px] font-bold uppercase tracking-wider rounded-full"
+                            style={{
+                              padding:    "3px 8px",
+                              background: isEnabled ? `${teamColor}18` : "rgba(255,255,255,0.06)",
+                              color:      isEnabled ? teamColor : "rgba(255,255,255,0.28)",
+                              border:     `1px solid ${isEnabled ? teamColor + "30" : "rgba(255,255,255,0.08)"}`,
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            {def.team}
+                          </span>
+
+                          {/* Info button — stopPropagation so it doesn't trigger toggle */}
+                          <motion.button
+                            onClick={(e) => { e.stopPropagation(); setPopupRole(roleName); }}
+                            whileTap={{ scale: 0.85 }}
+                            className="flex items-center justify-center rounded-full shrink-0"
+                            style={{
+                              width:      26,
+                              height:     26,
+                              background: "rgba(255,255,255,0.05)",
+                              border:     "1px solid rgba(255,255,255,0.08)",
+                              opacity:    0.55,
+                              transition: "opacity 0.15s",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.55")}
+                          >
+                            <Info size={11} className="text-gray-300" />
+                          </motion.button>
+                        </div>
+
+                        {/* Row 2 — icon + name + enabled checkmark */}
+                        <div
+                          className="flex flex-col items-center gap-2.5 flex-1"
+                          style={{ opacity: isEnabled ? 1 : 0.38, transition: "opacity 0.2s" }}
+                        >
+                          <div
+                            className="relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                            style={{
+                              fontSize:   "28px",
+                              background: isEnabled ? `${def.color}16` : "rgba(255,255,255,0.05)",
+                              border:     `1px solid ${isEnabled ? def.color + "28" : "rgba(255,255,255,0.07)"}`,
+                              transition: "background 0.2s, border-color 0.2s",
+                            }}
+                          >
+                            {def.icon}
+                          </div>
+                          <p
+                            className="text-[13px] font-semibold text-center leading-tight w-full"
+                            style={{ color: isEnabled ? "#f1f1f7" : "rgba(255,255,255,0.32)" }}
+                          >
+                            {def.displayName}
+                          </p>
+                        </div>
+
+                        {/* Row 3 — stepper (stopPropagation so stepper doesn't toggle card) */}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          {isEnabled ? (
+                            <div
+                              className="flex items-center justify-between rounded-xl"
+                              style={{
+                                background: "rgba(255,255,255,0.07)",
+                                border:     "1px solid rgba(255,255,255,0.09)",
+                                padding:    "7px 8px",
+                              }}
+                            >
+                              <motion.button
+                                whileTap={{ scale: 0.75 }}
+                                onClick={() => handleCount(roleName, -1)}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                style={{ background: "rgba(255,255,255,0.09)" }}
+                              >
+                                <Minus size={12} className="text-gray-400" />
+                              </motion.button>
+                              <span className="text-sm font-bold" style={{ color: def.color }}>
+                                {config.count}
+                              </span>
+                              <motion.button
+                                whileTap={{ scale: 0.75 }}
+                                onClick={() => handleCount(roleName, 1)}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                style={{ background: "rgba(255,255,255,0.09)" }}
+                              >
+                                <Plus size={12} className="text-gray-400" />
+                              </motion.button>
+                            </div>
+                          ) : (
+                            <div
+                              className="flex items-center justify-center rounded-xl"
+                              style={{
+                                background: "rgba(255,255,255,0.03)",
+                                border:     "1px solid rgba(255,255,255,0.05)",
+                                padding:    "8px",
+                              }}
+                            >
+                              <span
+                                className="text-[9px] font-semibold uppercase tracking-widest"
+                                style={{ color: "rgba(255,255,255,0.18)" }}
+                              >
+                                off
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             );
           })}
         </div>
 
-        {/* Advanced Settings Toggle */}
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="flex items-center gap-2 mt-6 mb-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
-        >
-          <Settings2 size={16} />
-          Advanced Game Settings
-        </button>
-
-        {showSettings && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="flex flex-col gap-5 mb-8 p-6 rounded-2xl overflow-hidden"
-            style={{
-              background: "rgba(22,22,31,0.6)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
+        {/* Advanced Settings */}
+        <div className="mt-5">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-300 transition-colors w-full"
           >
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-                Day Phase: Tie Breaker
-              </label>
-              <select
-                value={settings.tieBreaker}
-                onChange={(e) => updateSetting("tieBreaker", e.target.value as any)}
-                className="bg-black/50 text-white text-sm rounded-lg p-2.5 border border-white/10 outline-none"
+            <Settings2 size={13} />
+            <span>Advanced Settings</span>
+            <ChevronDown
+              size={13}
+              className="ml-auto transition-transform duration-200"
+              style={{ transform: showSettings ? "rotate(180deg)" : "rotate(0deg)" }}
+            />
+          </button>
+
+          <AnimatePresence>
+            {showSettings && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.22 }}
+                className="overflow-hidden"
               >
-                <option value="no-elimination">No Elimination</option>
-                <option value="random">Random Target</option>
-                <option value="revote">Moderator Decides</option>
-              </select>
-            </div>
+                <div className="mt-3 flex flex-col gap-2">
 
-            <div className="w-full h-px bg-white/5" />
+                  {/* Day Tie Breaker */}
+                  <div
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(255,255,255,0.06)" }}
+                    >
+                      <Shuffle size={14} className="text-gray-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-300 leading-none mb-0.5">Day Tie Breaker</p>
+                      <p className="text-[10px] text-gray-600">What happens on a voting tie</p>
+                    </div>
+                    <select
+                      value={settings.tieBreaker}
+                      onChange={(e) => updateSetting("tieBreaker", e.target.value as any)}
+                      className="text-white text-xs rounded-xl outline-none shrink-0"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        padding: "6px 10px",
+                        maxWidth: 110,
+                      }}
+                    >
+                      <option value="no-elimination">No Elim.</option>
+                      <option value="random">Random</option>
+                      <option value="revote">Mod Decides</option>
+                    </select>
+                  </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-red-400 font-semibold uppercase tracking-wider">
-                Werewolf Team: Tie Breaker
-              </label>
-              <select
-                value={settings.werewolfTieBreaker}
-                onChange={(e) => updateSetting("werewolfTieBreaker", e.target.value as any)}
-                className="bg-black/50 text-white text-sm rounded-lg p-2.5 border border-white/10 outline-none"
-              >
-                <option value="alpha">Alpha Decides</option>
-                <option value="random">Random Target</option>
-              </select>
-            </div>
+                  {/* Werewolf Tie Breaker */}
+                  <div
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                    style={{ background: "rgba(220,38,38,0.04)", border: "1px solid rgba(220,38,38,0.12)" }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(220,38,38,0.12)" }}
+                    >
+                      <span style={{ fontSize: 16 }}>🐺</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold leading-none mb-0.5" style={{ color: "#f87171" }}>Werewolf Tie Breaker</p>
+                      <p className="text-[10px] text-gray-600">Wolf pack kill vote tie</p>
+                    </div>
+                    <select
+                      value={settings.werewolfTieBreaker}
+                      onChange={(e) => updateSetting("werewolfTieBreaker", e.target.value as any)}
+                      className="text-white text-xs rounded-xl outline-none shrink-0"
+                      style={{
+                        background: "rgba(220,38,38,0.12)",
+                        border: "1px solid rgba(220,38,38,0.2)",
+                        padding: "6px 10px",
+                        maxWidth: 110,
+                      }}
+                    >
+                      <option value="alpha">Alpha Decides</option>
+                      <option value="random">Random</option>
+                    </select>
+                  </div>
 
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-300 font-medium">Alpha Override Vote</label>
-              <button
-                onClick={() => updateSetting("alphaOverrideVote", !settings.alphaOverrideVote)}
-                className="relative rounded-full w-11 h-6 transition-colors"
-                style={{
-                  background: settings.alphaOverrideVote ? "#dc2626" : "rgba(255,255,255,0.1)",
-                }}
-              >
-                <div
-                  className="absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all"
-                  style={{ left: settings.alphaOverrideVote ? "calc(100% - 20px)" : "4px" }}
-                />
-              </button>
-            </div>
+                  {/* Alpha Override Vote */}
+                  <div
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(185,28,28,0.12)" }}
+                    >
+                      <Crown size={14} style={{ color: "#f87171" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-300 leading-none mb-0.5">Alpha Override Vote</p>
+                      <p className="text-[10px] text-gray-600">Alpha can overrule pack decision</p>
+                    </div>
+                    <MiniToggle
+                      value={settings.alphaOverrideVote}
+                      color="#dc2626"
+                      onChange={() => updateSetting("alphaOverrideVote", !settings.alphaOverrideVote)}
+                    />
+                  </div>
 
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-300 font-medium">Alpha Convert Limit</label>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => updateSetting("alphaConvertLimit", Math.max(0, settings.alphaConvertLimit - 1))}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="text-white text-base font-bold w-4 text-center">
-                  {settings.alphaConvertLimit}
-                </span>
-                <button
-                  onClick={() => updateSetting("alphaConvertLimit", settings.alphaConvertLimit + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
+                  {/* Alpha Convert Limit */}
+                  <div
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(185,28,28,0.12)" }}
+                    >
+                      <Shield size={14} style={{ color: "#f87171" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-300 leading-none mb-0.5">Alpha Convert Limit</p>
+                      <p className="text-[10px] text-gray-600">Max conversions per game</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => updateSetting("alphaConvertLimit", Math.max(0, settings.alphaConvertLimit - 1))}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                        style={{ background: "rgba(255,255,255,0.07)" }}
+                      >
+                        <Minus size={11} />
+                      </button>
+                      <span className="text-sm font-bold text-white w-5 text-center">
+                        {settings.alphaConvertLimit}
+                      </span>
+                      <button
+                        onClick={() => updateSetting("alphaConvertLimit", settings.alphaConvertLimit + 1)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                        style={{ background: "rgba(255,255,255,0.07)" }}
+                      >
+                        <Plus size={11} />
+                      </button>
+                    </div>
+                  </div>
 
-        <div className="h-4" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="h-2" />
       </div>
 
-      {/* Sticky CTA */}
+      {/* ── Sticky CTA ── */}
       <div
-        className="flex-shrink-0 px-5 py-4"
+        className="flex-shrink-0"
         style={{
-          borderTop: "1px solid rgba(255,255,255,0.07)",
+          padding:    "16px 20px",
+          borderTop:  "1px solid rgba(255,255,255,0.07)",
           background: "rgba(10,10,15,0.96)",
         }}
       >
         <motion.button
           onClick={() => setPhase("player-input")}
           disabled={!canProceed}
+          whileTap={canProceed ? { scale: 0.97 } : {}}
+          whileHover={canProceed ? { scale: 1.01 } : {}}
           className="w-full flex items-center justify-center gap-2 rounded-2xl font-bold text-base"
           style={{
-            padding: "18px 24px",
+            padding:    "16px 20px",
             background: canProceed
               ? "linear-gradient(135deg, #dc2626, #991b1b)"
               : "rgba(255,255,255,0.07)",
-            color: canProceed ? "white" : "#4b5563",
-            border: canProceed ? "1px solid rgba(220,38,38,0.35)" : "1px solid transparent",
+            color:      canProceed ? "white" : "#4b5563",
+            border:     canProceed ? "1px solid rgba(220,38,38,0.35)" : "1px solid transparent",
+            transition: "all 0.2s",
           }}
-          whileTap={{ scale: 0.97 }}
-          whileHover={canProceed ? { scale: 1.01 } : {}}
         >
           <Users size={16} />
           Continue to Players
@@ -345,195 +464,162 @@ export default function SetupScreen() {
         </motion.button>
       </div>
 
-      {/* Role Detail Popup */}
-      <AnimatePresence>
+      {/* ── Role Detail Popup — centered modal like role reveal ── */}
+      <FullscreenModal
+        isOpen={popupRole !== null}
+        onClose={() => setPopupRole(null)}
+        showClose
+      >
         {popupRole && (() => {
-          const def = ROLE_DEFINITIONS[popupRole];
+          const def       = ROLE_DEFINITIONS[popupRole];
           const teamColor = TEAM_COLORS[def.team];
           return (
-            <motion.div
-              className="fixed inset-0 z-[100] flex items-center justify-center p-5"
-              style={{ background: "rgba(0,0,0,0.78)" }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setPopupRole(null)}
-            >
-              {/* Backdrop blur layer */}
-              <div className="absolute inset-0 backdrop-blur-sm pointer-events-none" />
+            <div className="flex flex-col items-center text-center gap-5 px-6 py-8">
 
+              {/* Glowing icon orb — exactly like role reveal */}
               <motion.div
-                initial={{ scale: 0.92, opacity: 0, y: 32 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.92, opacity: 0, y: 24 }}
-                transition={{ type: "spring", damping: 24, stiffness: 320 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-[340px] rounded-[28px] overflow-hidden shadow-2xl"
-                style={{
-                  background: "#0e0e16",
-                  border: `1px solid ${def.color}25`,
-                  boxShadow: `0 0 60px ${def.color}20, 0 24px 48px rgba(0,0,0,0.6)`,
-                }}
+                className="relative"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
-                {/* ── HERO HEADER ── */}
                 <div
-                  className="relative flex flex-col items-center pt-8 pb-6 px-6 overflow-hidden"
+                  className="w-24 h-24 rounded-full flex items-center justify-center text-5xl"
                   style={{
-                    background: `linear-gradient(180deg, ${def.color}28 0%, transparent 100%)`,
+                    background: `radial-gradient(circle, ${def.color}28, transparent)`,
+                    boxShadow:  `0 0 48px ${def.color}45, 0 0 96px ${def.color}18`,
+                    border:     `2px solid ${def.color}38`,
                   }}
                 >
-                  {/* Ambient glow orb */}
-                  <div
-                    className="absolute -top-6 left-1/2 -translate-x-1/2 w-56 h-36 pointer-events-none"
-                    style={{
-                      background: `radial-gradient(ellipse, ${def.color}50 0%, transparent 70%)`,
-                      filter: "blur(24px)",
-                    }}
-                  />
-
-                  {/* Icon ring */}
-                  <motion.div
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.08, type: "spring", damping: 18, stiffness: 280 }}
-                    className="relative z-10 flex items-center justify-center mb-4"
-                    style={{
-                      width: 84,
-                      height: 84,
-                      borderRadius: "50%",
-                      background: `radial-gradient(circle, ${def.color}20 0%, ${def.color}08 100%)`,
-                      border: `2px solid ${def.color}55`,
-                      boxShadow: `0 0 0 6px ${def.color}10, 0 0 28px ${def.color}35`,
-                    }}
-                  >
-                    <span style={{ fontSize: 44, lineHeight: 1 }}>{def.icon}</span>
-                  </motion.div>
-
-                  {/* Role name */}
-                  <motion.h2
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.12 }}
-                    className="relative z-10 text-[22px] font-bold text-white tracking-wide"
-                    style={{ fontFamily: "var(--font-cinzel)" }}
-                  >
-                    {def.displayName}
-                  </motion.h2>
-
-                  {/* Team badge */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.16 }}
-                    className="relative z-10 mt-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full"
-                    style={{
-                      background: `${teamColor}18`,
-                      border: `1px solid ${teamColor}40`,
-                    }}
-                  >
-                    <div
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: teamColor, boxShadow: `0 0 4px ${teamColor}` }}
-                    />
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-widest"
-                      style={{ color: teamColor }}
-                    >
-                      {def.team} Team
-                    </span>
-                  </motion.div>
+                  {def.icon}
                 </div>
-
-                {/* Divider */}
-                <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${def.color}30, transparent)` }} />
-
-                {/* ── BODY ── */}
-                <div className="px-5 pt-4 pb-5 space-y-3">
-
-                  {/* Description card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.18 }}
-                    className="rounded-2xl p-4"
-                    style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                    }}
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5"
-                      style={{ color: "rgba(255,255,255,0.35)" }}>
-                      Description
-                    </p>
-                    <p className="text-sm text-gray-300 leading-relaxed">
-                      {def.description}
-                    </p>
-                  </motion.div>
-
-                  {/* Night action card */}
-                  {def.nightInstruction && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.22 }}
-                      className="rounded-2xl overflow-hidden"
-                      style={{
-                        background: `${def.color}12`,
-                        border: `1px solid ${def.color}35`,
-                      }}
-                    >
-                      <div
-                        className="flex items-center gap-2 px-4 py-2.5"
-                        style={{ borderBottom: `1px solid ${def.color}25` }}
-                      >
-                        <span style={{ fontSize: 13, lineHeight: 1 }}>🌙</span>
-                        <p
-                          className="text-[10px] font-bold uppercase tracking-widest"
-                          style={{ color: def.color }}
-                        >
-                          Night Action
-                        </p>
-                      </div>
-                      <div className="px-4 py-3.5">
-                        <p
-                          className="text-sm leading-relaxed italic"
-                          style={{ color: "rgba(255,255,255,0.72)" }}
-                        >
-                          "{def.nightInstruction}"
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Close button */}
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.26 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setPopupRole(null)}
-                    className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all mt-1"
-                    style={{
-                      background: `${def.color}22`,
-                      border: `1px solid ${def.color}40`,
-                      color: def.color,
-                      letterSpacing: "0.04em",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.background = `${def.color}35`;
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.background = `${def.color}22`;
-                    }}
-                  >
-                    Close
-                  </motion.button>
-                </div>
+                <div
+                  className="absolute inset-0 rounded-full animate-spin-slow"
+                  style={{ border: `1px solid ${def.color}25`, transform: "scale(1.25)" }}
+                />
               </motion.div>
-            </motion.div>
+
+              {/* Role name */}
+              <motion.div
+                className="flex flex-col items-center gap-2"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <h2
+                  className="text-3xl font-bold"
+                  style={{
+                    fontFamily:  "var(--font-cinzel)",
+                    color:       def.color,
+                    textShadow:  `0 0 32px ${def.color}55`,
+                  }}
+                >
+                  {def.displayName}
+                </h2>
+                <span
+                  className="text-xs font-semibold px-3 py-1 rounded-full"
+                  style={{
+                    background: `${teamColor}18`,
+                    color:      teamColor,
+                    border:     `1px solid ${teamColor}38`,
+                  }}
+                >
+                  {def.team} Team
+                </span>
+              </motion.div>
+
+              {/* Description */}
+              <motion.p
+                className="text-sm text-gray-400 leading-relaxed text-left"
+                style={{ maxWidth: 300 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                {def.description}
+              </motion.p>
+
+              {/* Night action */}
+              {def.nightInstruction && (
+                <motion.div
+                  className="w-full rounded-2xl overflow-hidden text-left"
+                  style={{ background: `${def.color}10`, border: `1px solid ${def.color}28` }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <div
+                    className="flex items-center gap-2 px-4 py-2.5"
+                    style={{ borderBottom: `1px solid ${def.color}20` }}
+                  >
+                    <span className="text-sm">🌙</span>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: def.color }}>
+                      Night Instruction
+                    </p>
+                  </div>
+                  <p className="px-4 py-3 text-sm leading-relaxed italic" style={{ color: "rgba(255,255,255,0.65)" }}>
+                    "{def.nightInstruction}"
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Close CTA */}
+              <motion.button
+                onClick={() => setPopupRole(null)}
+                className="w-full font-bold text-base text-white rounded-2xl"
+                style={{
+                  padding:    "16px 24px",
+                  background: `linear-gradient(135deg, ${def.color}, ${def.color}99)`,
+                  boxShadow:  `0 6px 24px ${def.color}35`,
+                  border:     `1px solid ${def.color}50`,
+                }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55 }}
+                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.01 }}
+              >
+                Got it ✓
+              </motion.button>
+            </div>
           );
         })()}
-      </AnimatePresence>
+      </FullscreenModal>
     </div>
+  );
+}
+
+/* ─── Sub-components ─────────────────────────────────────────────── */
+
+function MiniToggle({
+  value,
+  color,
+  onChange,
+}: {
+  value: boolean;
+  color: string;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      onClick={onChange}
+      className="relative rounded-full shrink-0"
+      style={{
+        width:      32,
+        height:     18,
+        background: value ? color : "rgba(255,255,255,0.1)",
+        transition: "background 0.2s",
+      }}
+    >
+      <div
+        className="absolute top-[2px] bg-white rounded-full shadow"
+        style={{
+          width:      14,
+          height:     14,
+          left:       value ? "calc(100% - 16px)" : "2px",
+          transition: "left 0.2s",
+        }}
+      />
+    </button>
   );
 }
