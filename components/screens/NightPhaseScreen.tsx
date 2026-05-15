@@ -418,7 +418,21 @@ export default function NightPhaseScreen() {
                 <div className="flex flex-col gap-4">
                   {players.some(p => p.role === "AlphaWerewolf" && p.isAlive) && (
                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                       <h3 className="text-amber-500 font-bold mb-3 text-lg">👑 Alpha Decision</h3>
+                       <h3 className="text-amber-500 font-bold mb-1 text-lg">👑 Alpha Decision</h3>
+                       {/* Instruction hint */}
+                       <div
+                         className="flex items-start gap-2 rounded-xl mb-3 mt-1"
+                         style={{
+                           padding: "9px 12px",
+                           background: "rgba(251,191,36,0.07)",
+                           border: "1px solid rgba(251,191,36,0.18)",
+                         }}
+                       >
+                         <span className="text-amber-400 text-sm flex-shrink-0 mt-0.5">✋</span>
+                         <p className="text-xs leading-relaxed" style={{ color: "#a16207" }}>
+                           Use finger signals to choose: <span className="text-amber-300 font-semibold">1</span> = Follow Team&nbsp;&nbsp;<span className="text-amber-300 font-semibold">2</span> = Override Kill&nbsp;&nbsp;<span className="text-amber-300 font-semibold">3</span> = Convert
+                         </p>
+                       </div>
                        <div className="flex flex-col gap-2">
                           <button onClick={() => { setAlphaConvertId(null); setAlphaOverrideId(null); }} className={`w-full py-4 text-base font-bold rounded-xl transition-colors ${!alphaOverrideId && !alphaConvertId ? 'bg-amber-600 text-white shadow-lg' : 'bg-white/10 text-gray-400'}`}>Follow Team</button>
                           {useGameStore.getState().settings.alphaOverrideVote && (
